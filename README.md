@@ -7,14 +7,7 @@ students practicing foundational cardiac assessment.
 
 This is a ground-up rebuild of the
 [CON-XR Cardiac Auscultation Trainer](https://github.com/andrewfrueh/CON-XR_Cardiac_Auscultation_Trainer)
-with the same stack and a new architecture. The audio engine design is in
-[docs/audio-engine-design.md](docs/audio-engine-design.md).
-
-## Status
-
-Early. The repository has the build, test, and lint tooling, continuous
-integration, and the engine design. The app itself renders a heading and
-nothing else yet.
+with the same stack and a new architecture.
 
 ## Quick start
 
