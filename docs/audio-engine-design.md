@@ -57,20 +57,21 @@ src/
 │   ├── rhythms/*.json
 │   ├── locations.json
 │   └── scenarios/*.json
-├── state/store.ts      app state, get/set/subscribe
-├── app/actions.ts      user intents that update state and drive the player
-├── ui/                 DOM controls
-└── main.ts             composition root
+├── store/              Zustand store: app state and the actions that change it
+├── components/         React components
+├── App.tsx             root component
+└── main.tsx            mounts App into index.html
 ```
 
 Dependency direction is one way:
 
 ```
-data → engine → audio → state → app → ui → main
+data → engine → audio → store → components → App → main
 ```
 
-`engine/` imports nothing from the layers to its right. `ui/` never imports
-`audio/` or `engine/` directly.
+`engine/` imports nothing from the layers to its right. Components never
+import `audio/` or `engine/` directly. They read state and call actions on the
+store, and the store drives the player.
 
 ## 4. The cardiac cycle model
 
@@ -545,7 +546,8 @@ resume have succeeded.
 
 ## 8. State and actions
 
-`state/store.ts`:
+App state lives in one Zustand store under `store/`. The store holds the
+values the UI renders and the actions that change them.
 
 ```ts
 type AppState = {
@@ -556,13 +558,25 @@ type AppState = {
   volume: number;
   error?: string;
 };
+
+type AppActions = {
+  play: () => void;
+  pause: () => void;
+  selectScenario: (id: string) => void;
+  selectLocation: (id: Location['id']) => void;
+  setBpm: (bpm: number) => void;
+  setVolume: (volume: number) => void;
+};
 ```
 
-The store exposes `get()`, `set(patch)`, and `subscribe(listener)`. Nothing
-else. `app/actions.ts` exports `play`, `pause`, `selectScenario`,
-`selectLocation`, `setBpm`, and `setVolume`. Each validates its input, updates
-the store, and calls the player. UI code calls actions and reads the store. It
-never touches the player.
+Each action validates its input, updates state, and calls the player. The
+player is created once at startup and handed to the store. Components
+subscribe to the slices they render with the `useAppStore` hook and call
+actions from event handlers. No component touches the player, `audio/`, or
+`engine/`.
+
+Static data such as scenarios and sound sets is not in the store. It is
+imported from `data/` and never changes while the app runs.
 
 ## 9. Testing
 
@@ -579,6 +593,8 @@ All engine tests run in Node with no browser APIs.
   150 BPM. Assert no S4 in AFib. Assert nothing is scheduled during a blocked
   beat. Assert a window straddling a beat boundary returns events from both
   beats and none twice.
+- **Store tests** render nothing. They call actions and assert state and
+  player calls using a fake player.
 - **Player tests** use a fake AudioContext that records `start` calls. They
   assert that events are started at their scheduled times and that `stopAll`
   stops every tracked voice.
