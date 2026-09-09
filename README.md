@@ -39,12 +39,14 @@ The dev server prints a local URL, usually `http://localhost:5173`.
 ## Stack
 
 - **TypeScript** with strict compiler options. See `tsconfig.json`.
-- **Vite** for the dev server and production bundle. There is no framework.
-  `index.html` is the entry point and everything reachable from `src/main.ts`
-  is bundled.
+- **Vite** for the dev server and production bundle. `index.html` is the entry
+  point and everything reachable from `src/main.tsx` is bundled.
+- **React** for the UI.
+- **Zustand** for application state.
+- **Zod** for schema validation of data files.
 - **Three.js** for the 3D scene.
 - **Web Audio API** for sound playback.
-- **Vitest** for tests, running in a jsdom environment.
+- **Vitest** and **Testing Library** for tests, running in a jsdom environment.
 - **ESLint** with type-aware rules and **Prettier** for formatting.
 - **commitlint** and **husky** to enforce Conventional Commits locally.
 - **GitHub Actions** for continuous integration.

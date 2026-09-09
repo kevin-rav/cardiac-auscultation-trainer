@@ -72,6 +72,6 @@ version everywhere.
 - ESLint uses the type-aware `strictTypeChecked` preset. Suppress a rule
   inline only with a comment explaining why.
 - Prettier owns formatting. Run `npm run format`.
-- Tests sit next to the code they cover as `*.test.ts`. Behavior changes come
+- Tests sit next to the code they cover as `*.test.ts` or `*.test.tsx`. Behavior changes come
   with a test.
 - Keep dependencies few. Commit `package-lock.json` with any change.
