@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navigation, AudioTuner } from './components';
 
 export function App() {
@@ -34,27 +37,49 @@ export function App() {
         window.location.search.includes('tool=audio-tuner')));
 
   return (
-    <div className="app-shell">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Navigation currentPath={currentPath} onNavigate={handleNavigate} />
 
       {isTunerRoute ? (
         <AudioTuner />
       ) : (
-        <main className="trainer-placeholder">
-          <h1>Cardiac Auscultation Trainer</h1>
-          <p>
-            Welcome to the Cardiac Auscultation Trainer. Use the top navigation bar to open the{' '}
-            <button
-              type="button"
-              className="btn-link"
-              onClick={() => {
-                handleNavigate('/audio-tuner');
-              }}
-            >
-              Audio Tuner & Filter Tool
-            </button>
-            .
-          </p>
+        <main className="flex flex-1 items-center justify-center p-6">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  <h1 className="text-xl font-bold">Cardiac Auscultation Trainer</h1>
+                </CardTitle>
+                <Badge variant="secondary">Ready</Badge>
+              </div>
+              <CardDescription>
+                Interactive clinical simulation for cardiac sound training.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                Welcome to the Cardiac Auscultation Trainer. Use the top navigation bar to open the{' '}
+                <Button
+                  variant="link"
+                  className="h-auto p-0 text-sm font-semibold"
+                  onClick={() => {
+                    handleNavigate('/audio-tuner');
+                  }}
+                >
+                  Audio Tuner &amp; Filter Tool
+                </Button>
+                .
+              </p>
+              <Button
+                variant="default"
+                onClick={() => {
+                  handleNavigate('/audio-tuner');
+                }}
+              >
+                Open Audio Tuner &amp; Filter Tool
+              </Button>
+            </CardContent>
+          </Card>
         </main>
       )}
     </div>
