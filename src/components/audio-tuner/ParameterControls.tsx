@@ -1,3 +1,8 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTunerStore, type Component, type MurmurShape } from '../../store';
 
 const COMPONENT_OPTIONS: Component[] = [
@@ -49,197 +54,235 @@ export function ParameterControls() {
   };
 
   return (
-    <section className="tuner-panel">
-      <div className="events-header">
-        <h3 className="panel-title">Sound Set Events</h3>
-        <div className="event-action-buttons">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              addEvent('transient');
-            }}
-          >
-            + Add Transient
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              addEvent('murmur');
-            }}
-          >
-            + Add Murmur
-          </button>
-        </div>
-      </div>
-
-      {/* Event Tabs */}
-      <div className="event-tabs">
-        {soundSet.events.map((ev, idx) => (
-          <button
-            key={`${ev.component}-${idx.toString()}`}
-            type="button"
-            className={`event-tab ${selectedEventIndex === idx ? 'active' : ''}`}
-            onClick={() => {
-              selectEvent(idx);
-            }}
-          >
-            <span className="event-tab-type">[{ev.kind === 'transient' ? 'T' : 'M'}]</span>
-            {ev.component}
-          </button>
-        ))}
-      </div>
-
-      <div className="event-details-card">
-        <div className="card-top-row">
-          <span className="badge-kind">Type: {currentEvent.kind.toUpperCase()}</span>
-          {soundSet.events.length > 1 && (
-            <button
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>
+            <h3 className="text-base font-semibold text-card-foreground">Sound Set Events</h3>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
               type="button"
-              className="btn-danger-outline btn-sm"
+              variant="outline"
+              size="sm"
               onClick={() => {
-                removeEvent(selectedEventIndex);
+                addEvent('transient');
               }}
             >
-              Delete Event
-            </button>
-          )}
-        </div>
-
-        <div className="grid-2col">
-          <div className="field-group">
-            <label htmlFor="comp-select" className="field-label">
-              Component Role:
-            </label>
-            <select
-              id="comp-select"
-              className="select-input"
-              value={currentEvent.component}
-              onChange={(e) => {
-                handleComponentChange(e.target.value as Component);
+              + Add Transient
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                addEvent('murmur');
               }}
             >
-              {COMPONENT_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="sample-input" className="field-label">
-              Sample ID:
-            </label>
-            <input
-              id="sample-input"
-              type="text"
-              className="text-input"
-              value={currentEvent.sample}
-              onChange={(e) => {
-                handleSampleChange(e.target.value);
-              }}
-            />
+              + Add Murmur
+            </Button>
           </div>
         </div>
+      </CardHeader>
 
-        {/* Gain Control */}
-        <div className="field-group">
-          <div className="field-header">
-            <label htmlFor="gain-slider" className="field-label">
-              Gain Multiplier:
-            </label>
-            <span className="value-badge">
-              {currentEvent.gain.toFixed(2)}x ({gainDb} dB)
-            </span>
-          </div>
-          <input
-            id="gain-slider"
-            type="range"
-            min="0"
-            max="4"
-            step="0.05"
-            value={currentEvent.gain}
-            onChange={(e) => {
-              setGain(Number(e.target.value));
-            }}
-            className="slider"
-          />
-        </div>
+      <CardContent className="flex flex-col gap-4">
+        {/* Event Tabs */}
+        <Tabs
+          value={selectedEventIndex.toString()}
+          onValueChange={(val) => {
+            selectEvent(Number(val));
+          }}
+        >
+          <TabsList className="h-auto flex-wrap justify-start gap-1 bg-muted p-1">
+            {soundSet.events.map((ev, idx) => (
+              <TabsTrigger
+                key={`${ev.component}-${idx.toString()}`}
+                value={idx.toString()}
+                className="gap-1.5"
+              >
+                <Badge variant="secondary" className="px-1 py-0 text-[10px] font-semibold">
+                  {ev.kind === 'transient' ? 'T' : 'M'}
+                </Badge>
+                <span>{ev.component}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-        {/* Transient-specific controls */}
-        {currentEvent.kind === 'transient' && (
-          <div className="field-group">
-            <div className="field-header">
-              <label htmlFor="rate-slider" className="field-label">
-                Playback Rate / Pitch:
-              </label>
-              <span className="value-badge">{currentEvent.playbackRate.toFixed(2)}x</span>
-            </div>
-            <input
-              id="rate-slider"
-              type="range"
-              min="0.5"
-              max="2.0"
-              step="0.05"
-              value={currentEvent.playbackRate}
-              onChange={(e) => {
-                setPlaybackRate(Number(e.target.value));
-              }}
-              className="slider"
-            />
-          </div>
-        )}
-
-        {/* Murmur-specific controls */}
-        {currentEvent.kind === 'murmur' && (
-          <div className="grid-2col">
-            <div className="field-group">
-              <label htmlFor="shape-select" className="field-label">
-                Murmur Envelope Shape:
-              </label>
-              <select
-                id="shape-select"
-                className="select-input"
-                value={currentEvent.shape}
-                onChange={(e) => {
-                  updateEvent(selectedEventIndex, {
-                    ...currentEvent,
-                    shape: e.target.value as MurmurShape,
-                  });
+        {/* Event Details Card */}
+        <div className="flex flex-col gap-4 rounded-lg border border-border p-4 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <Badge variant="outline" className="font-semibold">
+              Type: {currentEvent.kind.toUpperCase()}
+            </Badge>
+            {soundSet.events.length > 1 && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  removeEvent(selectedEventIndex);
                 }}
               >
-                {MURMUR_SHAPES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
+                Delete Event
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="comp-select"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
+                Component Role:
+              </label>
+              <select
+                id="comp-select"
+                className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                value={currentEvent.component}
+                onChange={(e) => {
+                  handleComponentChange(e.target.value as Component);
+                }}
+              >
+                {COMPONENT_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="field-group">
-              <label htmlFor="edge-input" className="field-label">
-                Edge Smoothing (ms):
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="sample-input"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
+                Sample ID:
               </label>
               <input
-                id="edge-input"
-                type="number"
-                min="0"
-                max="100"
-                className="text-input"
-                value={currentEvent.edgeMs}
+                id="sample-input"
+                type="text"
+                className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                value={currentEvent.sample}
                 onChange={(e) => {
-                  updateEvent(selectedEventIndex, {
-                    ...currentEvent,
-                    edgeMs: Number(e.target.value),
-                  });
+                  handleSampleChange(e.target.value);
                 }}
               />
             </div>
           </div>
-        )}
-      </div>
-    </section>
+
+          {/* Gain Control */}
+          <div className="flex flex-col gap-2 pt-1">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="gain-slider"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
+                Gain Multiplier:
+              </label>
+              <Badge variant="secondary">
+                {currentEvent.gain.toFixed(2)}x ({gainDb} dB)
+              </Badge>
+            </div>
+            <Slider
+              id="gain-slider"
+              min={0}
+              max={4}
+              step={0.05}
+              value={[currentEvent.gain]}
+              onValueChange={(vals) => {
+                const val = vals[0];
+                if (val !== undefined) {
+                  setGain(val);
+                }
+              }}
+            />
+          </div>
+
+          {/* Transient-specific controls */}
+          {currentEvent.kind === 'transient' && (
+            <div className="flex flex-col gap-2 pt-1">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="rate-slider"
+                  className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+                >
+                  Playback Rate / Pitch:
+                </label>
+                <Badge variant="secondary">{currentEvent.playbackRate.toFixed(2)}x</Badge>
+              </div>
+              <Slider
+                id="rate-slider"
+                min={0.5}
+                max={2.0}
+                step={0.05}
+                value={[currentEvent.playbackRate]}
+                onValueChange={(vals) => {
+                  const val = vals[0];
+                  if (val !== undefined) {
+                    setPlaybackRate(val);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Murmur-specific controls */}
+          {currentEvent.kind === 'murmur' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="shape-select"
+                  className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+                >
+                  Murmur Envelope Shape:
+                </label>
+                <select
+                  id="shape-select"
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  value={currentEvent.shape}
+                  onChange={(e) => {
+                    updateEvent(selectedEventIndex, {
+                      ...currentEvent,
+                      shape: e.target.value as MurmurShape,
+                    });
+                  }}
+                >
+                  {MURMUR_SHAPES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="edge-input"
+                  className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+                >
+                  Edge Smoothing (ms):
+                </label>
+                <input
+                  id="edge-input"
+                  type="number"
+                  min="0"
+                  max="100"
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  value={currentEvent.edgeMs}
+                  onChange={(e) => {
+                    updateEvent(selectedEventIndex, {
+                      ...currentEvent,
+                      edgeMs: Number(e.target.value),
+                    });
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
