@@ -1,4 +1,11 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { useTunerStore } from '../../store';
+
+const HP_PRESETS = [40, 80, 150, 300, 500] as const;
+const LP_PRESETS = [500, 800, 1200, 2500, 5000] as const;
 
 export function FilterControls() {
   const soundSet = useTunerStore((s) => s.soundSet);
@@ -26,115 +33,129 @@ export function FilterControls() {
   };
 
   return (
-    <section className="tuner-panel">
-      <h3 className="panel-title">Filter Equalization</h3>
-      <p className="panel-subtitle">
-        Biquad filters applied to the active component ({currentEvent?.component ?? 'none'})
-      </p>
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h3 className="text-base font-semibold text-card-foreground">Filter Equalization</h3>
+        </CardTitle>
+        <CardDescription>
+          Biquad filters applied to the active component ({currentEvent?.component ?? 'none'})
+        </CardDescription>
+      </CardHeader>
 
-      {/* Highpass Filter */}
-      <div className="filter-group">
-        <div className="filter-header">
-          <label className="field-label" htmlFor="hp-slider">
-            Highpass Cutoff:
-          </label>
-          <span className="value-badge">
-            {highpassHz !== undefined ? `${highpassHz.toString()} Hz` : 'Bypassed (Off)'}
-          </span>
-          <button
-            type="button"
-            className="btn-link"
-            onClick={() => {
-              handleHighpassChange(highpassHz !== undefined ? undefined : 80);
-            }}
-          >
-            {highpassHz !== undefined ? 'Disable' : 'Enable'}
-          </button>
+      <CardContent className="flex flex-col gap-6">
+        {/* Highpass Filter */}
+        <div className="flex flex-col gap-3 rounded-lg border border-border p-3.5 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Highpass Cutoff:
+              </span>
+              <Badge variant={highpassHz !== undefined ? 'default' : 'secondary'}>
+                {highpassHz !== undefined ? `${highpassHz.toString()} Hz` : 'Bypassed (Off)'}
+              </Badge>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                handleHighpassChange(highpassHz !== undefined ? undefined : 80);
+              }}
+            >
+              {highpassHz !== undefined ? 'Disable' : 'Enable'}
+            </Button>
+          </div>
+
+          {highpassHz !== undefined && (
+            <div className="flex flex-col gap-3 pt-1">
+              <Slider
+                min={20}
+                max={2000}
+                step={10}
+                value={[highpassHz]}
+                onValueChange={(vals) => {
+                  const val = vals[0];
+                  if (val !== undefined) {
+                    handleHighpassChange(val);
+                  }
+                }}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {HP_PRESETS.map((hz) => (
+                  <Button
+                    key={hz}
+                    type="button"
+                    variant={highpassHz === hz ? 'default' : 'outline'}
+                    size="xs"
+                    onClick={() => {
+                      handleHighpassChange(hz);
+                    }}
+                  >
+                    {hz} Hz
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {highpassHz !== undefined && (
-          <>
-            <input
-              id="hp-slider"
-              type="range"
-              min="20"
-              max="2000"
-              step="10"
-              value={highpassHz}
-              onChange={(e) => {
-                handleHighpassChange(Number(e.target.value));
-              }}
-              className="slider"
-            />
-            <div className="preset-buttons">
-              {[40, 80, 150, 300, 500].map((hz) => (
-                <button
-                  key={hz}
-                  type="button"
-                  className={`btn-pill ${highpassHz === hz ? 'active' : ''}`}
-                  onClick={() => {
-                    handleHighpassChange(hz);
-                  }}
-                >
-                  {hz} Hz
-                </button>
-              ))}
+        {/* Lowpass Filter */}
+        <div className="flex flex-col gap-3 rounded-lg border border-border p-3.5 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Lowpass Cutoff:
+              </span>
+              <Badge variant={lowpassHz !== undefined ? 'default' : 'secondary'}>
+                {lowpassHz !== undefined ? `${lowpassHz.toString()} Hz` : 'Bypassed (Off)'}
+              </Badge>
             </div>
-          </>
-        )}
-      </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                handleLowpassChange(lowpassHz !== undefined ? undefined : 1200);
+              }}
+            >
+              {lowpassHz !== undefined ? 'Disable' : 'Enable'}
+            </Button>
+          </div>
 
-      {/* Lowpass Filter */}
-      <div className="filter-group">
-        <div className="filter-header">
-          <label className="field-label" htmlFor="lp-slider">
-            Lowpass Cutoff:
-          </label>
-          <span className="value-badge">
-            {lowpassHz !== undefined ? `${lowpassHz.toString()} Hz` : 'Bypassed (Off)'}
-          </span>
-          <button
-            type="button"
-            className="btn-link"
-            onClick={() => {
-              handleLowpassChange(lowpassHz !== undefined ? undefined : 1200);
-            }}
-          >
-            {lowpassHz !== undefined ? 'Disable' : 'Enable'}
-          </button>
+          {lowpassHz !== undefined && (
+            <div className="flex flex-col gap-3 pt-1">
+              <Slider
+                min={200}
+                max={20000}
+                step={100}
+                value={[lowpassHz]}
+                onValueChange={(vals) => {
+                  const val = vals[0];
+                  if (val !== undefined) {
+                    handleLowpassChange(val);
+                  }
+                }}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {LP_PRESETS.map((hz) => (
+                  <Button
+                    key={hz}
+                    type="button"
+                    variant={lowpassHz === hz ? 'default' : 'outline'}
+                    size="xs"
+                    onClick={() => {
+                      handleLowpassChange(hz);
+                    }}
+                  >
+                    {hz >= 1000 ? `${(hz / 1000).toString()} kHz` : `${hz.toString()} Hz`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-
-        {lowpassHz !== undefined && (
-          <>
-            <input
-              id="lp-slider"
-              type="range"
-              min="200"
-              max="20000"
-              step="100"
-              value={lowpassHz}
-              onChange={(e) => {
-                handleLowpassChange(Number(e.target.value));
-              }}
-              className="slider"
-            />
-            <div className="preset-buttons">
-              {[500, 800, 1200, 2500, 5000].map((hz) => (
-                <button
-                  key={hz}
-                  type="button"
-                  className={`btn-pill ${lowpassHz === hz ? 'active' : ''}`}
-                  onClick={() => {
-                    handleLowpassChange(hz);
-                  }}
-                >
-                  {hz >= 1000 ? `${(hz / 1000).toString()} kHz` : `${hz.toString()} Hz`}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
