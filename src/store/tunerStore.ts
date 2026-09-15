@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { AudioPreviewPlayer, type TestSignalType } from '../audio';
-import { SoundSetSchema, type SoundEvent, type SoundSet, type Filter } from '../engine/schema';
+import {
+  SoundSetSchema,
+  type SoundEvent,
+  type SoundSet,
+  type Filter,
+  type Component,
+  type MurmurShape,
+} from '../engine/schema';
+
+export type { SoundEvent, SoundSet, Filter, Component, MurmurShape };
 
 export type SignalSource = TestSignalType | 'custom';
 
