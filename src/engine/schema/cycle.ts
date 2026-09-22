@@ -27,10 +27,10 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function landmarks(
-  rr: number,
+  bpm: number,
   params: CycleParams = DEFAULT_CYCLE_PARAMS,
 ): Landmarks {
-  const bpm = 60_000 / rr;
+  const rr = 60_000 / bpm;
 
   const systoleMs = clamp(
     params.systole.interceptMs - params.systole.slopePerBpm * bpm,
