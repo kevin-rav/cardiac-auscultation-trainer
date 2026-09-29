@@ -1,0 +1,45 @@
+{
+  "id": "mvp-late-systolic-murmur",
+  "label": "MVP with Late Systolic Murmur",
+  "description": "Mid-systolic click followed by a late-systolic crescendo murmur extending to S2, characteristic of mitral valve prolapse with progressive mitral regurgitation.",
+  "events": [
+    {
+      "kind": "transient",
+      "component": "S1",
+      "sample": "s1-apex",
+      "at": { "anchor": "S1" },
+      "gain": 1.0,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 80, "lowpassHz": 1200 }
+    },
+    {
+      "kind": "transient",
+      "component": "click",
+      "sample": "click",
+      "at": { "anchor": "S1", "fraction": 0.5 },
+      "gain": 1.0,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 400, "lowpassHz": 4500 }
+    },
+    {
+      "kind": "murmur",
+      "component": "systolicMurmur",
+      "sample": "murmur-noise",
+      "from": { "anchor": "S1", "fraction": 0.55 },
+      "to": { "anchor": "S2" },
+      "shape": "crescendo",
+      "gain": 0.9,
+      "filter": { "highpassHz": 200, "lowpassHz": 3200 },
+      "edgeMs": 15
+    },
+    {
+      "kind": "transient",
+      "component": "S2",
+      "sample": "s2-base",
+      "at": { "anchor": "S2" },
+      "gain": 0.85,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 100, "lowpassHz": 1500 }
+    }
+  ]
+}
