@@ -52,6 +52,8 @@ export interface TunerState {
   exportJson: () => string;
   importJson: (jsonString: string) => boolean;
 
+  applyChanges: () => void;
+
   presets: readonly SoundSet[];
   loadPreset: (id: string) => void;
 }
@@ -107,6 +109,12 @@ export function setCardiacPlayerInstance(player: CardiacAudioPlayer | null): voi
   cardiacPlayer = player;
 }
 
+function syncActivePlayers(updatedSoundSet: SoundSet): void {
+  if (cardiacPlayer) {
+    cardiacPlayer.setSoundSet(updatedSoundSet);
+  }
+}
+
 export const useTunerStore = create<TunerState>((set, get) => ({
   soundSet: defaultSoundSet,
   selectedEventIndex: 0,
@@ -151,7 +159,10 @@ export const useTunerStore = create<TunerState>((set, get) => ({
 
     set({ soundSet: updatedSoundSet, validationError: null });
 
-    // Sync live audio player if current event is playing
+    // Sync full cardiac cycle player immediately so next upcoming beat uses new settings
+    syncActivePlayers(updatedSoundSet);
+
+    // Sync live preview audio player if current event is playing in isolated preview mode
     if (index === get().selectedEventIndex) {
       const player = getPlayer();
       player.setGain(updated.gain);
@@ -160,6 +171,9 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       }
       player.setHighpass(updated.filter?.highpassHz);
       player.setLowpass(updated.filter?.lowpassHz);
+      if (get().playbackMode === 'isolated' && get().signalSource === 'event-sample') {
+        void player.loadSampleUrl(`/sounds/${updated.sample}.wav`);
+      }
     }
   },
 
@@ -187,11 +201,15 @@ export const useTunerStore = create<TunerState>((set, get) => ({
           };
 
     const nextEvents = [...soundSet.events, newEvent];
+    const updatedSoundSet: SoundSet = { ...soundSet, events: nextEvents };
+
     set({
-      soundSet: { ...soundSet, events: nextEvents },
+      soundSet: updatedSoundSet,
       selectedEventIndex: nextEvents.length - 1,
       validationError: null,
     });
+
+    syncActivePlayers(updatedSoundSet);
   },
 
   removeEvent: (index) => {
@@ -203,27 +221,34 @@ export const useTunerStore = create<TunerState>((set, get) => ({
 
     const nextEvents = soundSet.events.filter((_, i) => i !== index);
     const nextIndex = Math.min(selectedEventIndex, nextEvents.length - 1);
+    const updatedSoundSet: SoundSet = { ...soundSet, events: nextEvents };
 
     set({
-      soundSet: { ...soundSet, events: nextEvents },
+      soundSet: updatedSoundSet,
       selectedEventIndex: Math.max(0, nextIndex),
       validationError: null,
     });
+
+    syncActivePlayers(updatedSoundSet);
   },
 
   updateSoundSetMetadata: (label, id, description) => {
     const { soundSet } = get();
     const cleanId = id ? id.toLowerCase().replace(/[^a-z0-9-]/g, '-') : soundSet.id;
 
+    const updatedSoundSet: SoundSet = {
+      ...soundSet,
+      id: cleanId,
+      label,
+      ...(description !== undefined ? { description } : {}),
+    };
+
     set({
-      soundSet: {
-        ...soundSet,
-        id: cleanId,
-        label,
-        ...(description !== undefined ? { description } : {}),
-      },
+      soundSet: updatedSoundSet,
       validationError: null,
     });
+
+    syncActivePlayers(updatedSoundSet);
   },
 
   setFilter: (filter) => {
@@ -402,8 +427,13 @@ export const useTunerStore = create<TunerState>((set, get) => ({
         validationError: null,
       });
 
+      syncActivePlayers(validated.data);
+
       // Stop previous playback and sync parameters
       getPlayer().stop();
+      if (cardiacPlayer) {
+        cardiacPlayer.stop();
+      }
       set({ isPlaying: false });
 
       return true;
@@ -411,6 +441,24 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       const message = err instanceof Error ? err.message : 'Invalid JSON formatting';
       set({ validationError: message });
       return false;
+    }
+  },
+
+  applyChanges: () => {
+    const { soundSet, isPlaying, playbackMode, bpm } = get();
+    syncActivePlayers(soundSet);
+    if (isPlaying) {
+      if (playbackMode === 'full-cycle') {
+        const cp = getCardiacPlayer();
+        cp.stop();
+        cp.setSoundSet(soundSet);
+        cp.setBpm(bpm);
+        void cp.play();
+      } else {
+        const p = getPlayer();
+        p.stop();
+        get().play();
+      }
     }
   },
 

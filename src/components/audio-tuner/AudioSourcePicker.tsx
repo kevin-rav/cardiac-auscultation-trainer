@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +28,18 @@ export function AudioSourcePicker() {
   const setLoop = useTunerStore((s) => s.setLoop);
   const setBpm = useTunerStore((s) => s.setBpm);
   const togglePlay = useTunerStore((s) => s.togglePlay);
+  const applyChanges = useTunerStore((s) => s.applyChanges);
   const loadCustomAudio = useTunerStore((s) => s.loadCustomAudio);
+
+  const [justApplied, setJustApplied] = useState(false);
+
+  const handleApply = () => {
+    applyChanges();
+    setJustApplied(true);
+    setTimeout(() => {
+      setJustApplied(false);
+    }, 1500);
+  };
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -139,7 +150,7 @@ export function AudioSourcePicker() {
         )}
 
         <div className="flex flex-col gap-3 pt-2">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               type="button"
               variant={isPlaying ? 'destructive' : 'default'}
@@ -152,6 +163,20 @@ export function AudioSourcePicker() {
                   ? '▶ Play Cardiac Cycle'
                   : '▶ Play Preview'}
             </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleApply}
+              data-testid="apply-btn"
+              title="Immediately apply all parameter changes and restart the cardiac cycle"
+            >
+              {justApplied ? '✓ Applied!' : '⚡ Apply Changes'}
+            </Button>
+
+            <Badge variant="secondary" className="text-xs text-muted-foreground">
+              ● Live Sync Active
+            </Badge>
 
             {playbackMode === 'isolated' && (
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">

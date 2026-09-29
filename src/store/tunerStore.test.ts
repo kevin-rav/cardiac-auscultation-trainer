@@ -235,4 +235,14 @@ describe('TunerStore', () => {
     store.stop();
     expect(stopFn).toHaveBeenCalled();
   });
+
+  it('syncs sound set changes immediately to cardiac player and applies changes', () => {
+    const store = useTunerStore.getState();
+    store.setGain(2.2);
+    expect(cardiacSetSoundSetFn).toHaveBeenCalled();
+
+    store.play();
+    store.applyChanges();
+    expect(cardiacPlayFn).toHaveBeenCalled();
+  });
 });
