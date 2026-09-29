@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AudioTuner } from './AudioTuner';
-import { useTunerStore, setPreviewPlayerInstance } from '../../store';
-import type { AudioPreviewPlayer } from '../../audio';
+import { useTunerStore, setPreviewPlayerInstance, setCardiacPlayerInstance } from '../../store';
+import type { AudioPreviewPlayer, CardiacAudioPlayer } from '../../audio';
 
 const mockPlayer = {
   play: vi.fn(),
@@ -12,13 +12,25 @@ const mockPlayer = {
   setHighpass: vi.fn(),
   setLowpass: vi.fn(),
   setLoop: vi.fn(),
-  generateSyntheticBuffer: vi.fn(),
+  setBpm: vi.fn(),
+  loadSampleUrl: vi.fn().mockResolvedValue({}),
   loadAudioData: vi.fn().mockResolvedValue({}),
 } as unknown as AudioPreviewPlayer;
+
+const mockCardiacPlayer = {
+  play: vi.fn().mockResolvedValue(undefined),
+  stop: vi.fn(),
+  setSoundSet: vi.fn(),
+  setBpm: vi.fn(),
+  setVolume: vi.fn(),
+  getSampleLoader: () => ({ preloadManifest: vi.fn().mockResolvedValue({}) }),
+} as unknown as CardiacAudioPlayer;
 
 describe('AudioTuner UI Component', () => {
   beforeEach(() => {
     setPreviewPlayerInstance(mockPlayer);
+    setCardiacPlayerInstance(mockCardiacPlayer);
+    useTunerStore.setState({ isPlaying: false });
     vi.clearAllMocks();
   });
 
@@ -44,12 +56,12 @@ describe('AudioTuner UI Component', () => {
     render(<AudioTuner />);
     const playBtn = screen.getByTestId('play-btn');
 
-    expect(playBtn.textContent).toMatch(/Play Preview/i);
+    expect(playBtn.textContent).toMatch(/Play/i);
     fireEvent.click(playBtn);
     expect(playBtn.textContent).toMatch(/Stop/i);
 
     fireEvent.click(playBtn);
-    expect(playBtn.textContent).toMatch(/Play Preview/i);
+    expect(playBtn.textContent).toMatch(/Play/i);
   });
 
   it('adds and removes events via UI', () => {
@@ -97,5 +109,22 @@ describe('AudioTuner UI Component', () => {
     fireEvent.change(textarea, { target: { value: validJson } });
     fireEvent.click(applyBtn);
     expect(useTunerStore.getState().soundSet.id).toBe('custom-sound-set');
+  });
+
+  it('adjusts BPM via input and preset buttons', () => {
+    render(<AudioTuner />);
+
+    expect(screen.getByText(/Heart Rate \/ BPM:/i)).toBeDefined();
+    expect(screen.getByText(/72 BPM/i)).toBeDefined();
+
+    const bpmInput = screen.getByTestId('bpm-input');
+    fireEvent.change(bpmInput, { target: { value: '88' } });
+    expect(useTunerStore.getState().bpm).toBe(88);
+    expect(screen.getByText(/88 BPM/i)).toBeDefined();
+
+    const preset120 = screen.getByRole('button', { name: '120' });
+    fireEvent.click(preset120);
+    expect(useTunerStore.getState().bpm).toBe(120);
+    expect(screen.getByText(/120 BPM/i)).toBeDefined();
   });
 });
