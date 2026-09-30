@@ -4,17 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navigation, AudioTuner } from './components';
 
+// The app is served under a subpath on GitHub Pages, so routes are kept
+// relative to Vite's base URL.
+const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+function getAppPath(): string {
+  const { pathname } = window.location;
+  const path = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) : pathname;
+  return path || '/';
+}
+
 export function App() {
   const [currentPath, setCurrentPath] = useState(() => {
     if (typeof window !== 'undefined') {
-      return window.location.pathname;
+      return getAppPath();
     }
     return '/';
   });
 
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
+      setCurrentPath(getAppPath());
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -25,7 +35,7 @@ export function App() {
 
   const handleNavigate = (path: string) => {
     if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', path);
+      window.history.pushState({}, '', BASE_PATH + path);
       setCurrentPath(path);
     }
   };

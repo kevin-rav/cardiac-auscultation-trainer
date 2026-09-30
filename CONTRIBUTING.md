@@ -62,6 +62,12 @@ Both are required status checks on `main`. The branch must also be up to date
 with `main` before it can merge; if `main` moves, rebase or merge it in and
 push again.
 
+`.github/workflows/deploy.yml` publishes the app to GitHub Pages at
+`https://kevin-rav.github.io/cardiac-auscultation-trainer/`. It runs after CI
+succeeds on a push to `main`, and can also be started by hand from the Actions
+tab. Routes are resolved against Vite's base URL, so the same build works
+locally at `/` and on Pages under the repository subpath.
+
 CI uses the Node version in `.nvmrc`. Change that file to change the Node
 version everywhere.
 
