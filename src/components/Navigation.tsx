@@ -36,6 +36,15 @@ export function Navigation({ currentPath, onNavigate }: NavigationProps) {
         >
           Audio Tuner
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          asChild
+          data-testid="nav-3d"
+        >
+          <a href="/test-3d/">3D Model</a>
+        </Button>
       </div>
     </nav>
   );
