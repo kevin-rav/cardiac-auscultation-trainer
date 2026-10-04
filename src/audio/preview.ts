@@ -6,6 +6,8 @@ export interface PreviewOptions {
   gain?: number | undefined;
   playbackRate?: number | undefined;
   loop?: boolean | undefined;
+  /** Called when a non-looping sound finishes on its own, not when stop() is called. */
+  onEnded?: (() => void) | undefined;
 }
 
 export class AudioPreviewPlayer {
@@ -22,6 +24,7 @@ export class AudioPreviewPlayer {
   private playbackRate = 1;
   private highpassHz: number | undefined;
   private lowpassHz: number | undefined;
+  private onEnded: (() => void) | undefined;
 
   private getContext(): AudioContext {
     this.context ??= new AudioContext();
@@ -166,6 +169,7 @@ export class AudioPreviewPlayer {
       if (options.highpassHz !== undefined) this.highpassHz = options.highpassHz;
       if (options.lowpassHz !== undefined) this.lowpassHz = options.lowpassHz;
     }
+    this.onEnded = options?.onEnded;
 
     const source = ctx.createBufferSource();
     source.buffer = this.currentBuffer;
@@ -195,6 +199,7 @@ export class AudioPreviewPlayer {
       if (!this.loop && this.sourceNode === source) {
         this.isPlaying = false;
         this.sourceNode = null;
+        this.onEnded?.();
       }
     };
 

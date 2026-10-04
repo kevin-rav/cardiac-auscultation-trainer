@@ -148,4 +148,30 @@ describe('AudioPreviewPlayer', () => {
     player.dispose();
     expect(player.getIsPlaying()).toBe(false);
   });
+
+  it('calls onEnded when a non-looping sound finishes on its own', () => {
+    const onEnded = vi.fn();
+    const createSource = vi.spyOn(MockAudioContext.prototype, 'createBufferSource');
+    player.play({ loop: false, onEnded });
+    const source = createSource.mock.results[0]?.value as MockAudioBufferSourceNode;
+
+    source.onended?.();
+    expect(onEnded).toHaveBeenCalledOnce();
+    expect(player.getIsPlaying()).toBe(false);
+  });
+
+  it('does not call onEnded for a looping sound or after stop()', () => {
+    const onEnded = vi.fn();
+    const createSource = vi.spyOn(MockAudioContext.prototype, 'createBufferSource');
+
+    player.play({ loop: true, onEnded });
+    const looping = createSource.mock.results[0]?.value as MockAudioBufferSourceNode;
+    looping.onended?.();
+    expect(player.getIsPlaying()).toBe(true);
+
+    player.setLoop(false);
+    player.stop();
+    looping.onended?.();
+    expect(onEnded).not.toHaveBeenCalled();
+  });
 });

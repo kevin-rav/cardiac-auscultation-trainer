@@ -27,6 +27,11 @@ Direct pushes to `main` are rejected for everyone, including repository
 admins. Force pushes and branch deletion on `main` are blocked. The branch is
 deleted automatically after merge.
 
+## Reporting bugs
+
+Open an issue with the **Bug report** form. It asks for steps to reproduce,
+expected and actual behavior, and a severity, and adds the `bug` label.
+
 ## Commit messages
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
@@ -53,8 +58,10 @@ CI checks every commit in a pull request. The hook is installed by
 `.github/workflows/ci.yml` runs on every pull request and on every push to
 `main`. It has two jobs:
 
-- `ci` runs, in order: `npm ci`, typecheck, lint, format check, tests, build.
-  It stops at the first failure.
+- `ci` runs, in order: `npm ci`, typecheck, lint, format check, tests with
+  coverage, build. It stops at the first failure. The coverage report is
+  uploaded as the `coverage` artifact on the run; open `index.html` inside it
+  to see uncovered lines. There is no minimum coverage threshold.
 - `commitlint` runs only on pull requests and lints every commit between the
   base branch and the head.
 
