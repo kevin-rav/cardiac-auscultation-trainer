@@ -1,0 +1,1 @@
+export { TrainerView } from './TrainerView';
