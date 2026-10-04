@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AudioPreviewPlayer } from './preview';
 
 class MockAudioParam {
@@ -9,6 +9,7 @@ class MockAudioParam {
   public linearRampToValueAtTime = vi.fn((val: number) => {
     this.value = val;
   });
+  public cancelScheduledValues = vi.fn();
 }
 
 class MockAudioNode {
@@ -99,16 +100,28 @@ describe('AudioPreviewPlayer', () => {
     player = new AudioPreviewPlayer();
   });
 
-  it('generates synthetic heart sound buffers', () => {
-    const heartbeat = player.generateSyntheticBuffer('heart-beat');
-    expect(heartbeat).toBeDefined();
-    expect(heartbeat.numberOfChannels).toBe(1);
+  afterEach(() => {
+    player.stop();
+  });
 
-    const click = player.generateSyntheticBuffer('click');
-    expect(click).toBeDefined();
+  it('loads sample from URL and caches decoded buffer', async () => {
+    const fakeBuffer = new ArrayBuffer(64);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(fakeBuffer),
+      }),
+    );
 
-    const murmur = player.generateSyntheticBuffer('murmur');
-    expect(murmur).toBeDefined();
+    const buffer = await player.loadSampleUrl('/sounds/s1-apex.wav');
+    expect(buffer).toBeDefined();
+    expect(player.getBuffer()).toBe(buffer);
+
+    // Second call should return cached buffer without fetching again
+    const cached = await player.loadSampleUrl('/sounds/s1-apex.wav');
+    expect(cached).toBe(buffer);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it('starts audio graph on play with filter and gain settings', () => {
@@ -118,14 +131,39 @@ describe('AudioPreviewPlayer', () => {
       gain: 1.5,
       playbackRate: 1.1,
       loop: true,
+      bpm: 80,
     });
 
     expect(player.getIsPlaying()).toBe(true);
+    expect(player.getBpm()).toBe(80);
+    expect(player.getLoop()).toBe(true);
 
     player.setHighpass(180);
     player.setLowpass(3000);
     player.setGain(2.0);
     player.setPlaybackRate(1.2);
+  });
+
+  it('clamps BPM within clinical bounds (30 to 220)', () => {
+    player.setBpm(20);
+    expect(player.getBpm()).toBe(30);
+
+    player.setBpm(300);
+    expect(player.getBpm()).toBe(220);
+
+    player.setBpm(75);
+    expect(player.getBpm()).toBe(75);
+  });
+
+  it('supports dynamically enabling and disabling loop mode', () => {
+    player.play({ loop: false });
+    expect(player.getLoop()).toBe(false);
+
+    player.setLoop(true);
+    expect(player.getLoop()).toBe(true);
+
+    player.setLoop(false);
+    expect(player.getLoop()).toBe(false);
   });
 
   it('stops and disconnects gracefully', () => {

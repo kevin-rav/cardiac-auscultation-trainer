@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useTunerStore, setPreviewPlayerInstance } from './tunerStore';
-import type { AudioPreviewPlayer } from '../audio';
+import { useTunerStore, setPreviewPlayerInstance, setCardiacPlayerInstance } from './tunerStore';
+import type { AudioPreviewPlayer, CardiacAudioPlayer } from '../audio';
 
 const playFn = vi.fn();
 const stopFn = vi.fn();
+const setBpmFn = vi.fn();
 
 const mockPlayer = {
   play: () => {
@@ -17,13 +18,41 @@ const mockPlayer = {
   setHighpass: vi.fn(),
   setLowpass: vi.fn(),
   setLoop: vi.fn(),
-  generateSyntheticBuffer: vi.fn(),
+  setBpm: (bpm: number) => {
+    setBpmFn(bpm);
+  },
+  loadSampleUrl: vi.fn().mockResolvedValue({}),
   loadAudioData: vi.fn().mockResolvedValue({}),
 } as unknown as AudioPreviewPlayer;
+
+const cardiacPlayFn = vi.fn();
+const cardiacStopFn = vi.fn();
+const cardiacSetBpmFn = vi.fn();
+const cardiacSetSoundSetFn = vi.fn();
+
+const mockCardiacPlayer = {
+  play: () => {
+    cardiacPlayFn();
+    return Promise.resolve();
+  },
+  stop: () => {
+    cardiacStopFn();
+  },
+  setSoundSet: (set: unknown) => {
+    cardiacSetSoundSetFn(set);
+  },
+  setBpm: (bpm: number) => {
+    cardiacSetBpmFn(bpm);
+  },
+  setVolume: vi.fn(),
+  getSampleLoader: () => ({ preloadManifest: vi.fn().mockResolvedValue({}) }),
+} as unknown as CardiacAudioPlayer;
 
 describe('TunerStore', () => {
   beforeEach(() => {
     setPreviewPlayerInstance(mockPlayer);
+    setCardiacPlayerInstance(mockCardiacPlayer);
+    useTunerStore.setState({ playbackMode: 'full-cycle', isPlaying: false });
     vi.clearAllMocks();
   });
 
@@ -92,6 +121,7 @@ describe('TunerStore', () => {
 
   it('toggles playback and calls preview player', () => {
     const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
     expect(store.isPlaying).toBe(false);
 
     store.play();
@@ -101,6 +131,25 @@ describe('TunerStore', () => {
     store.togglePlay();
     expect(useTunerStore.getState().isPlaying).toBe(false);
     expect(stopFn).toHaveBeenCalled();
+  });
+
+  it('manages BPM and clamps to valid clinical bounds (30-220)', () => {
+    const store = useTunerStore.getState();
+    expect(store.bpm).toBe(72);
+
+    store.setBpm(85);
+    expect(useTunerStore.getState().bpm).toBe(85);
+    expect(setBpmFn).toHaveBeenCalledWith(85);
+
+    // Below min
+    store.setBpm(15);
+    expect(useTunerStore.getState().bpm).toBe(30);
+    expect(setBpmFn).toHaveBeenCalledWith(30);
+
+    // Above max
+    store.setBpm(300);
+    expect(useTunerStore.getState().bpm).toBe(220);
+    expect(setBpmFn).toHaveBeenCalledWith(220);
   });
 
   it('exports and imports valid JSON correctly', () => {
@@ -144,5 +193,56 @@ describe('TunerStore', () => {
     const schemaSuccess = store.importJson(invalidSchemaJson);
     expect(schemaSuccess).toBe(false);
     expect(useTunerStore.getState().validationError).toBeTruthy();
+  });
+
+  it('loads clinical preset sound sets correctly', () => {
+    const store = useTunerStore.getState();
+    expect(store.presets.length).toBeGreaterThanOrEqual(6);
+
+    store.loadPreset('s3-gallop');
+    expect(useTunerStore.getState().soundSet.id).toBe('s3-gallop');
+    expect(useTunerStore.getState().soundSet.events.length).toBe(3);
+    expect(useTunerStore.getState().selectedEventIndex).toBe(0);
+
+    store.loadPreset('aortic-stenosis');
+    expect(useTunerStore.getState().soundSet.id).toBe('aortic-stenosis');
+    expect(useTunerStore.getState().soundSet.events.length).toBe(3);
+  });
+
+  it('triggers CardiacAudioPlayer in full-cycle playback mode', () => {
+    const store = useTunerStore.getState();
+    expect(store.playbackMode).toBe('full-cycle');
+
+    store.play();
+    expect(cardiacPlayFn).toHaveBeenCalled();
+    expect(playFn).not.toHaveBeenCalled();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    store.stop();
+    expect(cardiacStopFn).toHaveBeenCalled();
+    expect(useTunerStore.getState().isPlaying).toBe(false);
+  });
+
+  it('triggers AudioPreviewPlayer in isolated sample playback mode', () => {
+    const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
+    expect(useTunerStore.getState().playbackMode).toBe('isolated');
+
+    store.play();
+    expect(playFn).toHaveBeenCalled();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    store.stop();
+    expect(stopFn).toHaveBeenCalled();
+  });
+
+  it('syncs sound set changes immediately to cardiac player and applies changes', () => {
+    const store = useTunerStore.getState();
+    store.setGain(2.2);
+    expect(cardiacSetSoundSetFn).toHaveBeenCalled();
+
+    store.play();
+    store.applyChanges();
+    expect(cardiacPlayFn).toHaveBeenCalled();
   });
 });

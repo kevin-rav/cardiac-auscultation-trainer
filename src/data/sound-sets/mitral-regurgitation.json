@@ -1,0 +1,36 @@
+{
+  "id": "mitral-regurgitation",
+  "label": "Mitral Regurgitation",
+  "description": "Holosystolic (pansystolic) plateau murmur extending uniformly across the entire systolic interval from S1 to S2, heard best at the apex.",
+  "events": [
+    {
+      "kind": "transient",
+      "component": "S1",
+      "sample": "s1-apex",
+      "at": { "anchor": "S1" },
+      "gain": 0.8,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 80, "lowpassHz": 1200 }
+    },
+    {
+      "kind": "murmur",
+      "component": "systolicMurmur",
+      "sample": "murmur-noise",
+      "from": { "anchor": "S1" },
+      "to": { "anchor": "S2" },
+      "shape": "plateau",
+      "gain": 1.0,
+      "filter": { "highpassHz": 150, "lowpassHz": 3800 },
+      "edgeMs": 15
+    },
+    {
+      "kind": "transient",
+      "component": "S2",
+      "sample": "s2-base",
+      "at": { "anchor": "S2" },
+      "gain": 0.85,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 100, "lowpassHz": 1500 }
+    }
+  ]
+}

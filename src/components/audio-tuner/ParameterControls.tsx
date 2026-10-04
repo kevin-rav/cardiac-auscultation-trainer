@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,17 @@ export function ParameterControls() {
   const removeEvent = useTunerStore((s) => s.removeEvent);
   const setGain = useTunerStore((s) => s.setGain);
   const setPlaybackRate = useTunerStore((s) => s.setPlaybackRate);
+  const applyChanges = useTunerStore((s) => s.applyChanges);
+
+  const [justApplied, setJustApplied] = useState(false);
+
+  const handleApply = () => {
+    applyChanges();
+    setJustApplied(true);
+    setTimeout(() => {
+      setJustApplied(false);
+    }, 1500);
+  };
 
   const currentEvent = soundSet.events[selectedEventIndex];
 
@@ -61,6 +73,15 @@ export function ParameterControls() {
             <h3 className="text-base font-semibold text-card-foreground">Sound Set Events</h3>
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleApply}
+              title="Immediately apply all changes to audio playback"
+            >
+              {justApplied ? '✓ Applied!' : '⚡ Apply Changes'}
+            </Button>
             <Button
               type="button"
               variant="outline"
