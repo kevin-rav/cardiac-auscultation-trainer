@@ -27,6 +27,11 @@ Direct pushes to `main` are rejected for everyone, including repository
 admins. Force pushes and branch deletion on `main` are blocked. The branch is
 deleted automatically after merge.
 
+## Reporting bugs
+
+Open an issue with the **Bug report** form. It asks for steps to reproduce,
+expected and actual behavior, and a severity, and adds the `bug` label.
+
 ## Commit messages
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
