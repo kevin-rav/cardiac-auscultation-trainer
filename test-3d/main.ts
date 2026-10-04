@@ -1,4 +1,4 @@
-import { Torso3DViewer } from './test-3d.ts';
+import { DEFAULT_MODEL_URL, Torso3DViewer } from './test-3d.ts';
 import type { AuscultationPointDefinition, AuscultationPointId } from './types.ts';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const viewer = new Torso3DViewer(container, {
-    modelUrl: './Auscultation_Torso_v1.glb',
+    modelUrl: DEFAULT_MODEL_URL,
     initialPoint: 'aortic',
     enableAutoRotate: false,
     lockRotation: false,

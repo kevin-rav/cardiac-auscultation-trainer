@@ -8,6 +8,10 @@ import type {
   TorsoViewerOptions,
 } from './types.ts';
 
+// The model is served from public/, so resolve it against Vite's base URL to
+// work under the GitHub Pages subpath as well as at / in dev.
+export const DEFAULT_MODEL_URL = `${import.meta.env.BASE_URL}Auscultation_Torso_v1.glb`;
+
 export const AUSCULTATION_POINTS: AuscultationPointDefinition[] = [
   {
     id: 'aortic',
@@ -110,7 +114,7 @@ export class Torso3DViewer {
     this.bindEvents();
     this.startAnimationLoop();
 
-    const modelToLoad = this.options.modelUrl ?? './Auscultation_Torso_v1.glb';
+    const modelToLoad = this.options.modelUrl ?? DEFAULT_MODEL_URL;
     this.loadModel(modelToLoad);
   }
 
@@ -266,10 +270,10 @@ export class Torso3DViewer {
       },
       (error) => {
         console.error('Failed to load 3D torso model:', error);
-        // If relative URL failed, try fallback to root public path
-        if (!url.startsWith('/Auscultation_Torso_v1.glb') && url !== '/Auscultation_Torso_v1.glb') {
-          console.log('Attempting fallback load from /Auscultation_Torso_v1.glb...');
-          this.loadModel('/Auscultation_Torso_v1.glb');
+        // If a custom URL failed, fall back to the bundled model.
+        if (url !== DEFAULT_MODEL_URL) {
+          console.log(`Attempting fallback load from ${DEFAULT_MODEL_URL}...`);
+          this.loadModel(DEFAULT_MODEL_URL);
           return;
         }
         const err = error instanceof Error ? error : new Error(String(error));
