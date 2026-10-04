@@ -22,5 +22,17 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      // main.tsx only mounts the app, and components/ui is generated shadcn code.
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test-setup.ts',
+        'src/main.tsx',
+        'src/components/ui/**',
+      ],
+      reporter: ['text', 'html', 'json-summary'],
+    },
   },
 });

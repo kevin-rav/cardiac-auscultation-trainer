@@ -13,6 +13,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -26,6 +27,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",

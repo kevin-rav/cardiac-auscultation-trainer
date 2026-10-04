@@ -21,6 +21,7 @@ export interface TunerState {
   signalSource: SignalSource;
   customFileName: string | null;
   validationError: string | null;
+  audioError: string | null;
 
   // Actions
   selectEvent: (index: number) => void;
@@ -70,6 +71,10 @@ const defaultSoundSet: SoundSet = {
   ],
 };
 
+function formatIssues(issues: { path: PropertyKey[]; message: string }[]): string {
+  return issues.map((issue) => `${issue.path.map(String).join('.')}: ${issue.message}`).join(', ');
+}
+
 let previewPlayer: AudioPreviewPlayer | null = null;
 
 function getPlayer(): AudioPreviewPlayer {
@@ -90,6 +95,7 @@ export const useTunerStore = create<TunerState>((set, get) => ({
   signalSource: 'heart-beat',
   customFileName: null,
   validationError: null,
+  audioError: null,
 
   selectEvent: (index) => {
     const { soundSet } = get();
@@ -175,15 +181,19 @@ export const useTunerStore = create<TunerState>((set, get) => ({
   updateSoundSetMetadata: (label, id, description) => {
     const { soundSet } = get();
     const cleanId = id ? id.toLowerCase().replace(/[^a-z0-9-]/g, '-') : soundSet.id;
+    const updated: SoundSet = {
+      ...soundSet,
+      id: cleanId,
+      label,
+      ...(description !== undefined ? { description } : {}),
+    };
 
+    // Keep the edit so the field stays editable, but flag a set that would not
+    // import back, such as one with an empty label.
+    const validated = SoundSetSchema.safeParse(updated);
     set({
-      soundSet: {
-        ...soundSet,
-        id: cleanId,
-        label,
-        ...(description !== undefined ? { description } : {}),
-      },
-      validationError: null,
+      soundSet: updated,
+      validationError: validated.success ? null : formatIssues(validated.error.issues),
     });
   },
 
@@ -228,7 +238,7 @@ export const useTunerStore = create<TunerState>((set, get) => ({
   },
 
   setSignalSource: (source) => {
-    set({ signalSource: source });
+    set({ signalSource: source, audioError: null });
     const player = getPlayer();
     if (source !== 'custom') {
       player.generateSyntheticBuffer(source);
@@ -240,10 +250,17 @@ export const useTunerStore = create<TunerState>((set, get) => ({
 
   loadCustomAudio: async (name, arrayBuffer) => {
     const player = getPlayer();
-    await player.loadAudioData(arrayBuffer);
+    try {
+      await player.loadAudioData(arrayBuffer);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      set({ audioError: `Could not decode ${name}: ${reason}` });
+      return;
+    }
     set({
       signalSource: 'custom',
       customFileName: name,
+      audioError: null,
     });
     if (get().isPlaying) {
       get().play();
@@ -270,6 +287,9 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       loop,
       ...(highpassHz !== undefined ? { highpassHz } : {}),
       ...(lowpassHz !== undefined ? { lowpassHz } : {}),
+      onEnded: () => {
+        set({ isPlaying: false });
+      },
     });
 
     set({ isPlaying: true });
@@ -300,10 +320,7 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       const validated = SoundSetSchema.safeParse(parsed);
 
       if (!validated.success) {
-        const errorMsg = validated.error.issues
-          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-          .join(', ');
-        set({ validationError: errorMsg });
+        set({ validationError: formatIssues(validated.error.issues) });
         return false;
       }
 
