@@ -77,17 +77,29 @@ export function App() {
                   }}
                 >
                   Audio Tuner &amp; Filter Tool
-                </Button>
+                </Button>{' '}
+                or launch the{' '}
+                <a
+                  href="/test-3d/"
+                  className="font-semibold text-primary underline underline-offset-4 hover:opacity-80"
+                >
+                  3D Torso Auscultation Explorer
+                </a>
                 .
               </p>
-              <Button
-                variant="default"
-                onClick={() => {
-                  handleNavigate('/audio-tuner');
-                }}
-              >
-                Open Audio Tuner &amp; Filter Tool
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    handleNavigate('/audio-tuner');
+                  }}
+                >
+                  Open Audio Tuner &amp; Filter Tool
+                </Button>
+                <Button variant="outline" asChild>
+                  <a href="/test-3d/">Explore 3D Torso (test-3d)</a>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </main>

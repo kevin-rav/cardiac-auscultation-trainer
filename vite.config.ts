@@ -11,6 +11,14 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(import.meta.dirname, 'index.html'),
+        'test-3d': path.resolve(import.meta.dirname, 'test-3d/index.html'),
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],

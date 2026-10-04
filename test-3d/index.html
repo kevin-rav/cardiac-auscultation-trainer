@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Cardiac Auscultation Explorer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app-layout">
+      <!-- Top Header Navigation -->
+      <header class="top-header">
+        <div class="header-badge">
+          <span class="badge-tag">3D Model</span>
+          <span class="title-text">Cardiac Torso Auscultation Explorer</span>
+        </div>
+        <a href="/" class="back-link" title="Return to Trainer">← Back to Trainer</a>
+      </header>
+
+      <!-- 3D WebGL Canvas Container -->
+      <main id="container" aria-label="3D Anatomical Torso Canvas">
+        <!-- Loading Progress Indicator (Matching CON-XR) -->
+        <div id="loading">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading 3D Auscultation Torso...</div>
+          <div id="loading-progress" class="loading-progress">0%</div>
+        </div>
+
+        <!-- 2D Overlay Auscultation Buttons (Projected from 3D Anchors) -->
+        <div id="aortic-btn" class="auscultation-btn" style="display: none">
+          <button
+            class="auscultation-point aortic"
+            data-point="aortic"
+            title="Aortic Point: 2nd ICS, Right Sternal Border"
+            aria-label="Select Aortic Auscultation Area"
+          >
+            <span class="point-dot"></span>
+            <span class="point-label">Aortic</span>
+          </button>
+        </div>
+
+        <div id="pulmonic-btn" class="auscultation-btn" style="display: none">
+          <button
+            class="auscultation-point pulmonic"
+            data-point="pulmonic"
+            title="Pulmonic Point: 2nd ICS, Left Sternal Border"
+            aria-label="Select Pulmonic Auscultation Area"
+          >
+            <span class="point-dot"></span>
+            <span class="point-label">Pulmonic</span>
+          </button>
+        </div>
+
+        <div id="tricuspid-btn" class="auscultation-btn" style="display: none">
+          <button
+            class="auscultation-point tricuspid"
+            data-point="tricuspid"
+            title="Tricuspid Point: 4th-5th ICS, Left Lower Sternal Border"
+            aria-label="Select Tricuspid Auscultation Area"
+          >
+            <span class="point-dot"></span>
+            <span class="point-label">Tricuspid</span>
+          </button>
+        </div>
+
+        <div id="mitral-btn" class="auscultation-btn" style="display: none">
+          <button
+            class="auscultation-point mitral"
+            data-point="mitral"
+            title="Mitral Point: 5th ICS, Left Midclavicular Line (Apex)"
+            aria-label="Select Mitral Auscultation Area"
+          >
+            <span class="point-dot"></span>
+            <span class="point-label">Mitral</span>
+          </button>
+        </div>
+      </main>
+
+      <!-- Clinical Information Card -->
+      <aside class="info-card" id="infoCard" aria-live="polite">
+        <div class="info-card-header">
+          <span class="info-card-title" id="infoTitle">Aortic Area</span>
+          <span class="info-tag" id="infoTag" style="background-color: #ef4444">Aortic</span>
+        </div>
+        <div class="info-field">
+          <div class="info-field-label">Anatomical Landmark</div>
+          <div class="info-field-value" id="infoLandmark">
+            2nd Intercostal Space, Right Sternal Border
+          </div>
+        </div>
+        <div class="info-field">
+          <div class="info-field-label">Auscultatory Acoustics</div>
+          <div class="info-field-value" id="infoSound">S2 louder than S1 (A2 aortic closure)</div>
+        </div>
+        <div class="info-field">
+          <div class="info-field-label">Clinical Highlights</div>
+          <div class="info-field-value" id="infoSignificance">
+            Best site to detect Aortic Stenosis and Aortic Regurgitation.
+          </div>
+        </div>
+        <div class="info-field">
+          <div class="info-field-label">Primary Pathology</div>
+          <div class="info-field-value" id="infoCondition">
+            Systolic ejection murmur of Aortic Stenosis radiating to carotids.
+          </div>
+        </div>
+      </aside>
+
+      <!-- Interactive Controls Dock (CON-XR Inspired) -->
+      <nav class="controls-dock" aria-label="Viewer Controls">
+        <div class="point-switcher-group">
+          <button class="switch-btn active" data-point="aortic" title="Select Aortic Area">
+            <span class="switch-pill" style="background-color: #ef4444"></span>
+            <span>Aortic</span>
+          </button>
+          <button class="switch-btn" data-point="pulmonic" title="Select Pulmonic Area">
+            <span class="switch-pill" style="background-color: #3b82f6"></span>
+            <span>Pulmonic</span>
+          </button>
+          <button class="switch-btn" data-point="tricuspid" title="Select Tricuspid Area">
+            <span class="switch-pill" style="background-color: #10b981"></span>
+            <span>Tricuspid</span>
+          </button>
+          <button class="switch-btn" data-point="mitral" title="Select Mitral Area">
+            <span class="switch-pill" style="background-color: #a855f7"></span>
+            <span>Mitral</span>
+          </button>
+        </div>
+
+        <div class="utility-group">
+          <button
+            class="icon-btn"
+            id="btnResetCamera"
+            title="Reset View Angle"
+            aria-label="Reset Camera View"
+          >
+            ↻
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleAutoRotate"
+            title="Toggle Auto-Rotation"
+            aria-label="Toggle Auto Rotate"
+          >
+            ⟳
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleRotationLock"
+            title="Toggle Anatomical View Lock"
+            aria-label="Lock Rotation to Front"
+          >
+            🔒
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleWireframe"
+            title="Toggle Wireframe Mode"
+            aria-label="Toggle Wireframe"
+          >
+            ⬡
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleTheme"
+            title="Toggle Dark/Light Mode"
+            aria-label="Toggle Theme"
+          >
+            🌙
+          </button>
+        </div>
+      </nav>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
