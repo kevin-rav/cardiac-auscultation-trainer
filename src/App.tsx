@@ -67,8 +67,8 @@ export function App() {
                   }}
                 >
                   Audio Tuner &amp; Filter Tool
-                </Button>
-                {' '}or launch the{' '}
+                </Button>{' '}
+                or launch the{' '}
                 <a
                   href="/test-3d/"
                   className="font-semibold text-primary underline underline-offset-4 hover:opacity-80"

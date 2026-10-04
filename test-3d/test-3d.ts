@@ -26,7 +26,8 @@ export const AUSCULTATION_POINTS: AuscultationPointDefinition[] = [
     anchorNodeName: 'ANCHOR_PULMONIC_VALVE',
     landmark: '2nd Intercostal Space, Left Sternal Border',
     soundDescription: 'Physiological splitting of S2 during inspiration',
-    clinicalSignificance: 'Best site to hear Pulmonic Stenosis, Pulmonary Flow Murmur, and fixed S2 split (ASD)',
+    clinicalSignificance:
+      'Best site to hear Pulmonic Stenosis, Pulmonary Flow Murmur, and fixed S2 split (ASD)',
     primaryCondition: 'Systolic murmur of pulmonic valve stenosis or innocent flow',
     color: '#3b82f6',
     defaultPosition: [0.205, 1.446, 0.278],
@@ -37,7 +38,8 @@ export const AUSCULTATION_POINTS: AuscultationPointDefinition[] = [
     anchorNodeName: 'ANCHOR_TRICUSPID_VALVE',
     landmark: '4th - 5th Intercostal Space, Left Lower Sternal Border',
     soundDescription: 'Tricuspid valve closure (T1 component of S1)',
-    clinicalSignificance: 'Best site for Tricuspid Regurgitation (increases with inspiration / Carvallo sign) and VSD',
+    clinicalSignificance:
+      'Best site for Tricuspid Regurgitation (increases with inspiration / Carvallo sign) and VSD',
     primaryCondition: 'Holosystolic murmur of tricuspid regurgitation or VSD',
     color: '#10b981',
     defaultPosition: [0.004, 1.109, 0.316],
@@ -48,8 +50,10 @@ export const AUSCULTATION_POINTS: AuscultationPointDefinition[] = [
     anchorNodeName: 'ANCHOR_MITRAL_VALVE',
     landmark: '5th Intercostal Space, Left Midclavicular Line',
     soundDescription: 'S1 louder than S2 (M1 closure); point of maximal impulse (PMI)',
-    clinicalSignificance: 'Best site for Mitral Regurgitation (radiates to axilla), Mitral Stenosis, S3, and S4 gallops',
-    primaryCondition: 'Pansystolic murmur of Mitral Regurgitation; diastolic rumble of Mitral Stenosis',
+    clinicalSignificance:
+      'Best site for Mitral Regurgitation (radiates to axilla), Mitral Stenosis, S3, and S4 gallops',
+    primaryCondition:
+      'Pansystolic murmur of Mitral Regurgitation; diastolic rumble of Mitral Stenosis',
     color: '#a855f7',
     defaultPosition: [0.321, 1.023, 0.299],
   },
@@ -106,9 +110,7 @@ export class Torso3DViewer {
     this.bindEvents();
     this.startAnimationLoop();
 
-    const modelToLoad =
-      this.options.modelUrl ??
-      './Auscultation_Torso_v1.glb';
+    const modelToLoad = this.options.modelUrl ?? './Auscultation_Torso_v1.glb';
     this.loadModel(modelToLoad);
   }
 
@@ -123,7 +125,11 @@ export class Torso3DViewer {
     this.camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 1000);
     this.camera.position.copy(this.defaultCameraPosition);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -223,7 +229,11 @@ export class Torso3DViewer {
         const targetScale = 5.6 / maxDim;
 
         this.modelRoot.scale.setScalar(targetScale);
-        this.modelRoot.position.set(-center.x * targetScale, -center.y * targetScale, -center.z * targetScale);
+        this.modelRoot.position.set(
+          -center.x * targetScale,
+          -center.y * targetScale,
+          -center.z * targetScale,
+        );
 
         // Apply materials and shadows
         this.modelRoot.traverse((child) => {
@@ -487,7 +497,8 @@ export class Torso3DViewer {
     const intersects = this.raycaster.intersectObjects(markerMeshes, false);
 
     if (intersects.length > 0 && intersects[0]?.object.userData) {
-      const hitId = (intersects[0].object.userData as { auscultationPointId?: AuscultationPointId }).auscultationPointId;
+      const hitId = (intersects[0].object.userData as { auscultationPointId?: AuscultationPointId })
+        .auscultationPointId;
       if (hitId && hitId !== this.hoveredPointId) {
         this.hoveredPointId = hitId;
         this.renderer.domElement.style.cursor = 'pointer';
@@ -511,7 +522,8 @@ export class Torso3DViewer {
     const intersects = this.raycaster.intersectObjects(markerMeshes, false);
 
     if (intersects.length > 0 && intersects[0]?.object.userData) {
-      const hitId = (intersects[0].object.userData as { auscultationPointId?: AuscultationPointId }).auscultationPointId;
+      const hitId = (intersects[0].object.userData as { auscultationPointId?: AuscultationPointId })
+        .auscultationPointId;
       if (hitId) {
         this.selectAuscultationPoint(hitId);
       }

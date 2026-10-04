@@ -6,16 +6,16 @@ This directory integrates the 3D anatomical model (`Auscultation_Torso_v1.glb`) 
 
 ## 🎯 Architecture & Comparison with CON-XR
 
-| Feature | Legacy CON-XR (`CON-XR_Cardiac`) | Modern `test-3d` Implementation |
-|---|---|---|
-| **Model Format** | `chest.fbx` & `heart.fbx` via `FBXLoader` | `Auscultation_Torso_v1.glb` via Three.js `GLTFLoader` |
-| **Auscultation Points** | Hardcoded 3D coordinate vector offsets | **Embedded GLTF Node Anchors**: `ANCHOR_AORTIC_VALVE`, `ANCHOR_PULMONIC_VALVE`, `ANCHOR_TRICUSPID_VALVE`, `ANCHOR_MITRAL_VALVE` |
-| **Model Normalization** | Scaled & centered using `THREE.Box3` | Dynamic bounding box normalization, scaled to 5.6 units and centered at origin `(0, 0, 0)` |
-| **Overlay Methodology** | 2D DOM buttons projected via `vector.project(camera)` | CON-XR projection formula with NDC conversion, occlusion detection, and dynamic resize handling |
-| **3D Markers** | None on chest mesh | Glowing center spheres with camera-facing pulsating billboarding rings + Raycaster click/hover support |
-| **Lighting** | Multi-point & directional setup with warm/cool accents | Ambient light + Key directional light with PCF soft shadows + Opposite fill light + Overhead light + Warm (`0xff9944`) & cool (`0x4499ff`) accent lights |
-| **Controls** | `OrbitControls` with horizontal/vertical angle restrictions | `OrbitControls` with smooth damping (`dampingFactor: 0.06`), anatomical lock toggle, and free 360° examination |
-| **UI & Theming** | Dark/Light mode, collapsible control panels | Glassmorphic floating dock, responsive clinical information card, keyboard shortcuts, and live theme switching |
+| Feature                 | Legacy CON-XR (`CON-XR_Cardiac`)                            | Modern `test-3d` Implementation                                                                                                                          |
+| ----------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Model Format**        | `chest.fbx` & `heart.fbx` via `FBXLoader`                   | `Auscultation_Torso_v1.glb` via Three.js `GLTFLoader`                                                                                                    |
+| **Auscultation Points** | Hardcoded 3D coordinate vector offsets                      | **Embedded GLTF Node Anchors**: `ANCHOR_AORTIC_VALVE`, `ANCHOR_PULMONIC_VALVE`, `ANCHOR_TRICUSPID_VALVE`, `ANCHOR_MITRAL_VALVE`                          |
+| **Model Normalization** | Scaled & centered using `THREE.Box3`                        | Dynamic bounding box normalization, scaled to 5.6 units and centered at origin `(0, 0, 0)`                                                               |
+| **Overlay Methodology** | 2D DOM buttons projected via `vector.project(camera)`       | CON-XR projection formula with NDC conversion, occlusion detection, and dynamic resize handling                                                          |
+| **3D Markers**          | None on chest mesh                                          | Glowing center spheres with camera-facing pulsating billboarding rings + Raycaster click/hover support                                                   |
+| **Lighting**            | Multi-point & directional setup with warm/cool accents      | Ambient light + Key directional light with PCF soft shadows + Opposite fill light + Overhead light + Warm (`0xff9944`) & cool (`0x4499ff`) accent lights |
+| **Controls**            | `OrbitControls` with horizontal/vertical angle restrictions | `OrbitControls` with smooth damping (`dampingFactor: 0.06`), anatomical lock toggle, and free 360° examination                                           |
+| **UI & Theming**        | Dark/Light mode, collapsible control panels                 | Glassmorphic floating dock, responsive clinical information card, keyboard shortcuts, and live theme switching                                           |
 
 ---
 
@@ -46,20 +46,26 @@ This directory integrates the 3D anatomical model (`Auscultation_Torso_v1.glb`) 
 ## 🚀 Running the Viewer
 
 ### 1. Vite Development Server
+
 From the repository root (`cardiac-auscultation-trainer`):
+
 ```bash
 npm run dev
 ```
+
 Then navigate to:
+
 - **`http://localhost:5173/test-3d/`** for the standalone 3D explorer page
 - Or open the main app at `http://localhost:5173/` and navigate to the 3D model tab.
 
 ### 2. Standalone Static Server
+
 ```bash
 npx serve test-3d
 ```
 
 ### 3. Production Build
+
 ```bash
 npm run build
 ```
