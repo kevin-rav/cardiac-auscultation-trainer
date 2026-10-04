@@ -80,7 +80,7 @@ export function App() {
                 </Button>{' '}
                 or launch the{' '}
                 <a
-                  href="/test-3d/"
+                  href={`${import.meta.env.BASE_URL}test-3d/`}
                   className="font-semibold text-primary underline underline-offset-4 hover:opacity-80"
                 >
                   3D Torso Auscultation Explorer
@@ -97,7 +97,7 @@ export function App() {
                   Open Audio Tuner &amp; Filter Tool
                 </Button>
                 <Button variant="outline" asChild>
-                  <a href="/test-3d/">Explore 3D Torso (test-3d)</a>
+                  <a href={`${import.meta.env.BASE_URL}test-3d/`}>Explore 3D Torso (test-3d)</a>
                 </Button>
               </div>
             </CardContent>
