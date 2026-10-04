@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTunerStore, setPreviewPlayerInstance } from './tunerStore';
-import type { AudioPreviewPlayer } from '../audio';
+import type { AudioPreviewPlayer, PreviewOptions } from '../audio';
 
 const playFn = vi.fn();
 const stopFn = vi.fn();
+const setLoopFn = vi.fn();
+const generateSyntheticBufferFn = vi.fn();
+const loadAudioDataFn = vi.fn();
 
 const mockPlayer = {
-  play: () => {
-    playFn();
+  play: (options?: PreviewOptions) => {
+    playFn(options);
   },
   stop: () => {
     stopFn();
@@ -16,15 +19,19 @@ const mockPlayer = {
   setPlaybackRate: vi.fn(),
   setHighpass: vi.fn(),
   setLowpass: vi.fn(),
-  setLoop: vi.fn(),
-  generateSyntheticBuffer: vi.fn(),
-  loadAudioData: vi.fn().mockResolvedValue({}),
+  setLoop: setLoopFn,
+  generateSyntheticBuffer: generateSyntheticBufferFn,
+  loadAudioData: loadAudioDataFn,
 } as unknown as AudioPreviewPlayer;
+
+const initialState = useTunerStore.getState();
 
 describe('TunerStore', () => {
   beforeEach(() => {
+    useTunerStore.setState(initialState, true);
     setPreviewPlayerInstance(mockPlayer);
     vi.clearAllMocks();
+    loadAudioDataFn.mockResolvedValue({});
   });
 
   it('has initial default sound set with S1 and S2 events', () => {
@@ -144,5 +151,71 @@ describe('TunerStore', () => {
     const schemaSuccess = store.importJson(invalidSchemaJson);
     expect(schemaSuccess).toBe(false);
     expect(useTunerStore.getState().validationError).toBeTruthy();
+  });
+
+  it('marks playback stopped when a non-looping sound ends on its own', () => {
+    useTunerStore.getState().play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    const options = playFn.mock.lastCall?.[0] as PreviewOptions | undefined;
+    options?.onEnded?.();
+    expect(useTunerStore.getState().isPlaying).toBe(false);
+  });
+
+  it('passes loop changes to the player', () => {
+    useTunerStore.getState().setLoop(true);
+    expect(useTunerStore.getState().loop).toBe(true);
+    expect(setLoopFn).toHaveBeenCalledWith(true);
+  });
+
+  it('regenerates the buffer on signal source change and restarts playback if playing', () => {
+    const store = useTunerStore.getState();
+    store.setSignalSource('click');
+    expect(generateSyntheticBufferFn).toHaveBeenCalledWith('click');
+    expect(playFn).not.toHaveBeenCalled();
+
+    store.play();
+    playFn.mockClear();
+    store.setSignalSource('murmur');
+    expect(useTunerStore.getState().signalSource).toBe('murmur');
+    expect(playFn).toHaveBeenCalledOnce();
+  });
+
+  it('switches to the custom source after decoding an uploaded file', async () => {
+    await useTunerStore.getState().loadCustomAudio('s1.wav', new ArrayBuffer(8));
+    const state = useTunerStore.getState();
+    expect(state.signalSource).toBe('custom');
+    expect(state.customFileName).toBe('s1.wav');
+    expect(state.audioError).toBeNull();
+  });
+
+  it('reports an error and keeps the current source when decoding fails', async () => {
+    loadAudioDataFn.mockRejectedValueOnce(new Error('Unable to decode'));
+    await useTunerStore.getState().loadCustomAudio('notes.txt', new ArrayBuffer(8));
+    const state = useTunerStore.getState();
+    expect(state.signalSource).toBe('heart-beat');
+    expect(state.customFileName).toBeNull();
+    expect(state.audioError).toBe('Could not decode notes.txt: Unable to decode');
+  });
+
+  it('sanitizes the set id and keeps the old id when the field is cleared', () => {
+    const store = useTunerStore.getState();
+    store.updateSoundSetMetadata('Label', 'My Set_2');
+    expect(useTunerStore.getState().soundSet.id).toBe('my-set-2');
+
+    useTunerStore.getState().updateSoundSetMetadata('Label', '');
+    expect(useTunerStore.getState().soundSet.id).toBe('my-set-2');
+  });
+
+  it('flags an empty label because the export would not import back', () => {
+    const store = useTunerStore.getState();
+    store.updateSoundSetMetadata('', store.soundSet.id);
+    const state = useTunerStore.getState();
+    expect(state.soundSet.label).toBe('');
+    expect(state.validationError).toMatch(/^label:/);
+    expect(state.importJson(state.exportJson())).toBe(false);
+
+    useTunerStore.getState().updateSoundSetMetadata('Fixed', state.soundSet.id);
+    expect(useTunerStore.getState().validationError).toBeNull();
   });
 });
