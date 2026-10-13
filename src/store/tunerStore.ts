@@ -206,6 +206,13 @@ export const useTunerStore = create<TunerState>((set, get) => ({
     const current = soundSet.events[selectedEventIndex];
     if (!current) return;
 
+    const nextHp = filter.highpassHz ?? current.filter?.highpassHz;
+    const nextLp = filter.lowpassHz ?? current.filter?.lowpassHz;
+    if (nextHp !== undefined && nextLp !== undefined && nextHp >= nextLp) {
+      set({ validationError: 'highpass cutoff must be lower than lowpass cutoff' });
+      return;
+    }
+
     const updated = {
       ...current,
       filter: {

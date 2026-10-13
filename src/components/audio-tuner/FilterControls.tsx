@@ -19,24 +19,22 @@ export function FilterControls() {
   const lowpassHz = filter?.lowpassHz;
 
   const handleHighpassChange = (value: number | undefined) => {
-    let nextHighpass = value;
-    if (nextHighpass !== undefined && lowpassHz !== undefined && nextHighpass >= lowpassHz) {
-      nextHighpass = Math.max(20, lowpassHz - 10);
+    if (value !== undefined && lowpassHz !== undefined && value >= lowpassHz) {
+      return;
     }
     setFilter({
-      highpassHz: nextHighpass,
+      highpassHz: value,
       ...(lowpassHz !== undefined ? { lowpassHz } : {}),
     });
   };
 
   const handleLowpassChange = (value: number | undefined) => {
-    let nextLowpass = value;
-    if (nextLowpass !== undefined && highpassHz !== undefined && nextLowpass <= highpassHz) {
-      nextLowpass = Math.min(20000, highpassHz + 10);
+    if (value !== undefined && highpassHz !== undefined && value <= highpassHz) {
+      return;
     }
     setFilter({
       ...(highpassHz !== undefined ? { highpassHz } : {}),
-      lowpassHz: nextLowpass,
+      lowpassHz: value,
     });
   };
 

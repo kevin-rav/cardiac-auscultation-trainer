@@ -97,10 +97,15 @@ describe('TunerStore', () => {
     }
   });
 
-  it('flags validation error when filter has highpass cutoff greater than or equal to lowpass', () => {
+  it('flags validation error and blocks setting highpass cutoff greater than or equal to lowpass', () => {
     const store = useTunerStore.getState();
+    const prevHp = store.soundSet.events[0]?.filter?.highpassHz;
+    const prevLp = store.soundSet.events[0]?.filter?.lowpassHz;
+
     store.setFilter({ highpassHz: 1200, lowpassHz: 200 });
     expect(useTunerStore.getState().validationError).toMatch(/lower than lowpass/i);
+    expect(useTunerStore.getState().soundSet.events[0]?.filter?.highpassHz).toBe(prevHp);
+    expect(useTunerStore.getState().soundSet.events[0]?.filter?.lowpassHz).toBe(prevLp);
 
     // Resolves error when valid cutoffs are set
     store.setFilter({ highpassHz: 80, lowpassHz: 1200 });
