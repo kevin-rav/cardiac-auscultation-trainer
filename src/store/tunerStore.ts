@@ -82,6 +82,13 @@ function getPlayer(): AudioPreviewPlayer {
   return previewPlayer;
 }
 
+function syncPlayerEvent(player: AudioPreviewPlayer, event: SoundEvent): void {
+  player.setGain(event.gain);
+  player.setPlaybackRate(event.kind === 'transient' ? event.playbackRate : 1);
+  player.setHighpass(event.filter?.highpassHz);
+  player.setLowpass(event.filter?.lowpassHz);
+}
+
 // For headless unit testing
 export function setPreviewPlayerInstance(player: AudioPreviewPlayer | null): void {
   previewPlayer = player;
@@ -98,9 +105,13 @@ export const useTunerStore = create<TunerState>((set, get) => ({
   audioError: null,
 
   selectEvent: (index) => {
-    const { soundSet } = get();
+    const { soundSet, isPlaying } = get();
     if (index >= 0 && index < soundSet.events.length) {
       set({ selectedEventIndex: index });
+      const target = soundSet.events[index];
+      if (isPlaying && target) {
+        syncPlayerEvent(getPlayer(), target);
+      }
     }
   },
 
@@ -124,18 +135,12 @@ export const useTunerStore = create<TunerState>((set, get) => ({
 
     // Sync live audio player if current event is playing
     if (index === get().selectedEventIndex) {
-      const player = getPlayer();
-      player.setGain(updated.gain);
-      if (updated.kind === 'transient') {
-        player.setPlaybackRate(updated.playbackRate);
-      }
-      player.setHighpass(updated.filter?.highpassHz);
-      player.setLowpass(updated.filter?.lowpassHz);
+      syncPlayerEvent(getPlayer(), updated);
     }
   },
 
   addEvent: (kind) => {
-    const { soundSet } = get();
+    const { soundSet, isPlaying } = get();
     const newEvent: SoundEvent =
       kind === 'transient'
         ? {
@@ -158,15 +163,19 @@ export const useTunerStore = create<TunerState>((set, get) => ({
           };
 
     const nextEvents = [...soundSet.events, newEvent];
+    const nextIndex = nextEvents.length - 1;
     set({
       soundSet: { ...soundSet, events: nextEvents },
-      selectedEventIndex: nextEvents.length - 1,
+      selectedEventIndex: nextIndex,
       validationError: null,
     });
+    if (isPlaying) {
+      syncPlayerEvent(getPlayer(), newEvent);
+    }
   },
 
   removeEvent: (index) => {
-    const { soundSet, selectedEventIndex } = get();
+    const { soundSet, selectedEventIndex, isPlaying } = get();
     if (soundSet.events.length <= 1) {
       set({ validationError: 'A sound set must contain at least one event.' });
       return;
@@ -174,12 +183,18 @@ export const useTunerStore = create<TunerState>((set, get) => ({
 
     const nextEvents = soundSet.events.filter((_, i) => i !== index);
     const nextIndex = Math.min(selectedEventIndex, nextEvents.length - 1);
+    const resolvedIndex = Math.max(0, nextIndex);
 
     set({
       soundSet: { ...soundSet, events: nextEvents },
-      selectedEventIndex: Math.max(0, nextIndex),
+      selectedEventIndex: resolvedIndex,
       validationError: null,
     });
+
+    const active = nextEvents[resolvedIndex];
+    if (isPlaying && active) {
+      syncPlayerEvent(getPlayer(), active);
+    }
   },
 
   updateSoundSetMetadata: (label, id, description) => {
