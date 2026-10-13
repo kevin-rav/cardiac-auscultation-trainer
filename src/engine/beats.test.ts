@@ -3,6 +3,7 @@ import {
   type Beat,
   type BeatGenerator,
   createBlockedBeatGenerator,
+  createBeatGenerator,
   createIrregularBeatGenerator,
   createRampBeatGenerator,
   createRegularBeatGenerator,
@@ -86,5 +87,20 @@ describe('rhythm beat generators', () => {
     }
 
     expect(current.bpm).toBeCloseTo(120, -1);
+  });
+
+  it('dispatches properly through the createBeatGenerator factory', () => {
+    const regularGen = createBeatGenerator(
+      { id: 'regular', label: 'Regular Sinus', type: 'regular' },
+      75,
+    );
+    expect(nextBeat(regularGen).bpm).toBe(75);
+
+    const blockedGen = createBeatGenerator(
+      { id: 'blocked', label: '2:1 Block', type: 'blocked', conductEvery: 2 },
+      60,
+    );
+    expect(nextBeat(blockedGen).conducted).toBe(true);
+    expect(nextBeat(blockedGen).conducted).toBe(false);
   });
 });
