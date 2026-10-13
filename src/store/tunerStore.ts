@@ -116,7 +116,11 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       events: nextEvents,
     };
 
-    set({ soundSet: updatedSoundSet, validationError: null });
+    const validated = SoundSetSchema.safeParse(updatedSoundSet);
+    set({
+      soundSet: updatedSoundSet,
+      validationError: validated.success ? null : formatIssues(validated.error.issues),
+    });
 
     // Sync live audio player if current event is playing
     if (index === get().selectedEventIndex) {
@@ -201,6 +205,13 @@ export const useTunerStore = create<TunerState>((set, get) => ({
     const { soundSet, selectedEventIndex, updateEvent } = get();
     const current = soundSet.events[selectedEventIndex];
     if (!current) return;
+
+    const nextHp = filter.highpassHz ?? current.filter?.highpassHz;
+    const nextLp = filter.lowpassHz ?? current.filter?.lowpassHz;
+    if (nextHp !== undefined && nextLp !== undefined && nextHp >= nextLp) {
+      set({ validationError: 'highpass cutoff must be lower than lowpass cutoff' });
+      return;
+    }
 
     const updated = {
       ...current,
