@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+
+vi.mock('./components/trainer/SceneCanvas', () => ({ SceneCanvas: () => null }));
 
 describe('App', () => {
   afterEach(() => {
@@ -26,5 +28,11 @@ describe('App', () => {
     fireEvent.click(mainNavBtn);
 
     expect(screen.getByText(/Welcome to the Cardiac Auscultation Trainer/i)).toBeDefined();
+  });
+
+  it('renders the trainer on the dev route', () => {
+    window.history.pushState({}, '', '/dev/trainer');
+    render(<App />);
+    expect(screen.getByTestId('toggle-view-btn')).toBeDefined();
   });
 });

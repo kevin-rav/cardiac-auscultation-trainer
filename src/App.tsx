@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Navigation, AudioTuner } from './components';
+import { Navigation, AudioTuner, TrainerView } from './components';
 
 // The app is served under a subpath on GitHub Pages, so routes are kept
 // relative to Vite's base URL.
@@ -46,11 +46,17 @@ export function App() {
       (window.location.hash === '#/audio-tuner' ||
         window.location.search.includes('tool=audio-tuner')));
 
+  // Work-in-progress trainer. Not linked from the navigation until it replaces
+  // the placeholder on the home page.
+  const isTrainerDevRoute = currentPath.startsWith('/dev/trainer');
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Navigation currentPath={currentPath} onNavigate={handleNavigate} />
 
-      {isTunerRoute ? (
+      {isTrainerDevRoute ? (
+        <TrainerView />
+      ) : isTunerRoute ? (
         <AudioTuner />
       ) : (
         <main className="flex flex-1 items-center justify-center p-6">
