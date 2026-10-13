@@ -80,7 +80,7 @@ export function FilterControls() {
             <div className="flex flex-col gap-3 pt-1">
               <Slider
                 min={20}
-                max={lowpassHz !== undefined ? Math.max(20, lowpassHz - 10) : 2000}
+                max={2000}
                 step={10}
                 value={[highpassHz]}
                 onValueChange={(vals) => {
@@ -140,7 +140,7 @@ export function FilterControls() {
           {lowpassHz !== undefined && (
             <div className="flex flex-col gap-3 pt-1">
               <Slider
-                min={highpassHz !== undefined ? Math.min(20000, highpassHz + 10) : 200}
+                min={200}
                 max={20000}
                 step={100}
                 value={[lowpassHz]}
