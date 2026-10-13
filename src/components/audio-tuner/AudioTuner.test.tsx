@@ -1,29 +1,32 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AudioTuner } from './AudioTuner';
-import { useTunerStore, setPreviewPlayerInstance } from '../../store';
-import type { AudioPreviewPlayer } from '../../audio';
+import { useTunerStore, setPlayerInstance } from '../../store';
+import type { CardiacAudioPlayer } from '../../audio';
 
 const mockPlayer = {
-  play: vi.fn(),
+  play: vi.fn().mockResolvedValue(undefined),
   stop: vi.fn(),
-  setGain: vi.fn(),
-  setPlaybackRate: vi.fn(),
-  setHighpass: vi.fn(),
-  setLowpass: vi.fn(),
+  setSoundSet: vi.fn(),
+  setBpm: vi.fn(),
   setLoop: vi.fn(),
-  generateSyntheticBuffer: vi.fn(),
+  setOnEnded: vi.fn(),
+  setVolume: vi.fn(),
   loadAudioData: vi.fn().mockResolvedValue({}),
-  restoreCustomBuffer: vi.fn(),
-  setBuffer: vi.fn(),
-} as unknown as AudioPreviewPlayer;
+  getSampleLoader: () => ({
+    preloadManifest: vi.fn().mockResolvedValue({}),
+    setBuffer: vi.fn(),
+    getBuffer: vi.fn(),
+  }),
+} as unknown as CardiacAudioPlayer;
 
 const initialState = useTunerStore.getState();
 
 describe('AudioTuner UI Component', () => {
   beforeEach(() => {
     useTunerStore.setState(initialState, true);
-    setPreviewPlayerInstance(mockPlayer);
+    setPlayerInstance(mockPlayer);
+    useTunerStore.setState({ isPlaying: false });
     vi.clearAllMocks();
   });
 
@@ -49,12 +52,12 @@ describe('AudioTuner UI Component', () => {
     render(<AudioTuner />);
     const playBtn = screen.getByTestId('play-btn');
 
-    expect(playBtn.textContent).toMatch(/Play Preview/i);
+    expect(playBtn.textContent).toMatch(/Play/i);
     fireEvent.click(playBtn);
     expect(playBtn.textContent).toMatch(/Stop/i);
 
     fireEvent.click(playBtn);
-    expect(playBtn.textContent).toMatch(/Play Preview/i);
+    expect(playBtn.textContent).toMatch(/Play/i);
   });
 
   it('disables play preview button when custom source is selected without uploaded file', () => {
@@ -62,8 +65,10 @@ describe('AudioTuner UI Component', () => {
     const playBtn = screen.getByTestId('play-btn');
     expect((playBtn as HTMLButtonElement).disabled).toBe(false);
 
-    const customRadio = screen.getByLabelText(/Custom Audio File/i);
-    fireEvent.click(customRadio);
+    // Switch to isolated mode and select custom audio source
+    fireEvent.click(screen.getByTestId('mode-isolated'));
+    const sourceSelect = screen.getByLabelText(/Audio Sample Source/i);
+    fireEvent.change(sourceSelect, { target: { value: 'custom' } });
 
     expect((playBtn as HTMLButtonElement).disabled).toBe(true);
   });
@@ -129,5 +134,22 @@ describe('AudioTuner UI Component', () => {
     fireEvent.change(textarea, { target: { value: validJson } });
     fireEvent.click(applyBtn);
     expect(useTunerStore.getState().soundSet.id).toBe('custom-sound-set');
+  });
+
+  it('adjusts BPM via input and preset buttons', () => {
+    render(<AudioTuner />);
+
+    expect(screen.getByText(/Heart Rate \/ BPM:/i)).toBeDefined();
+    expect(screen.getByText(/72 BPM/i)).toBeDefined();
+
+    const bpmInput = screen.getByTestId('bpm-input');
+    fireEvent.change(bpmInput, { target: { value: '88' } });
+    expect(useTunerStore.getState().bpm).toBe(88);
+    expect(screen.getByText(/88 BPM/i)).toBeDefined();
+
+    const preset120 = screen.getByRole('button', { name: '120' });
+    fireEvent.click(preset120);
+    expect(useTunerStore.getState().bpm).toBe(120);
+    expect(screen.getByText(/120 BPM/i)).toBeDefined();
   });
 });

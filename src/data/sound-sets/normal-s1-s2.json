@@ -1,0 +1,25 @@
+{
+  "id": "normal-s1-s2",
+  "label": "Normal S1-S2 Heart Sound",
+  "description": "Standard physiological heart sounds. S1 corresponds to AV valve closure (mitral/tricuspid) and S2 to semilunar valve closure (aortic/pulmonic).",
+  "events": [
+    {
+      "kind": "transient",
+      "component": "S1",
+      "sample": "s1-apex",
+      "at": { "anchor": "S1" },
+      "gain": 1.0,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 80, "lowpassHz": 1200 }
+    },
+    {
+      "kind": "transient",
+      "component": "S2",
+      "sample": "s2-base",
+      "at": { "anchor": "S2" },
+      "gain": 0.9,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 100, "lowpassHz": 1500 }
+    }
+  ]
+}

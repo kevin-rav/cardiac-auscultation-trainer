@@ -1,0 +1,52 @@
+{
+  "samples": [
+    {
+      "id": "s1-apex",
+      "url": "/sounds/s1-apex.wav",
+      "kind": "transient",
+      "trimDb": 0,
+      "source": "UMich",
+      "license": "Creative Commons"
+    },
+    {
+      "id": "s2-base",
+      "url": "/sounds/s2-base.wav",
+      "kind": "transient",
+      "trimDb": 0,
+      "source": "UMich",
+      "license": "Creative Commons"
+    },
+    {
+      "id": "s3",
+      "url": "/sounds/s3.wav",
+      "kind": "transient",
+      "trimDb": 3,
+      "source": "UMich",
+      "license": "Creative Commons"
+    },
+    {
+      "id": "s4",
+      "url": "/sounds/s4.wav",
+      "kind": "transient",
+      "trimDb": 3,
+      "source": "UMich",
+      "license": "Creative Commons"
+    },
+    {
+      "id": "click",
+      "url": "/sounds/click.wav",
+      "kind": "transient",
+      "trimDb": 0,
+      "source": "UMich",
+      "license": "Creative Commons"
+    },
+    {
+      "id": "murmur-noise",
+      "url": "/sounds/murmur-noise.wav",
+      "kind": "sustained",
+      "trimDb": 0,
+      "source": "UMich",
+      "license": "Creative Commons"
+    }
+  ]
+}

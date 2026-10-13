@@ -1,0 +1,34 @@
+{
+  "id": "s3-gallop",
+  "label": "S3 Ventricular Gallop",
+  "description": "Third heart sound occurring in early diastole during rapid ventricular filling. Cadence mimics 'Ken-tuck-y'. Common in heart failure and volume overload.",
+  "events": [
+    {
+      "kind": "transient",
+      "component": "S1",
+      "sample": "s1-apex",
+      "at": { "anchor": "S1" },
+      "gain": 1.0,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 80, "lowpassHz": 1200 }
+    },
+    {
+      "kind": "transient",
+      "component": "S2",
+      "sample": "s2-base",
+      "at": { "anchor": "S2" },
+      "gain": 0.9,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 100, "lowpassHz": 1500 }
+    },
+    {
+      "kind": "transient",
+      "component": "S3",
+      "sample": "s3",
+      "at": { "anchor": "S2", "ms": 140 },
+      "gain": 1.3,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 40, "lowpassHz": 300 }
+    }
+  ]
+}

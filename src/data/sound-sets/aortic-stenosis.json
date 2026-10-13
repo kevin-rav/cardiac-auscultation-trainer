@@ -1,0 +1,36 @@
+{
+  "id": "aortic-stenosis",
+  "label": "Aortic Stenosis",
+  "description": "Harsh crescendo-decrescendo (diamond-shaped) mid-systolic ejection murmur heard best at the right 2nd intercostal space (aortic area).",
+  "events": [
+    {
+      "kind": "transient",
+      "component": "S1",
+      "sample": "s1-apex",
+      "at": { "anchor": "S1" },
+      "gain": 0.95,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 80, "lowpassHz": 1200 }
+    },
+    {
+      "kind": "murmur",
+      "component": "systolicMurmur",
+      "sample": "murmur-noise",
+      "from": { "anchor": "S1", "fraction": 0.12 },
+      "to": { "anchor": "S1", "fraction": 0.88 },
+      "shape": "diamond",
+      "gain": 1.1,
+      "filter": { "highpassHz": 120, "lowpassHz": 3500 },
+      "edgeMs": 20
+    },
+    {
+      "kind": "transient",
+      "component": "S2",
+      "sample": "s2-base",
+      "at": { "anchor": "S2" },
+      "gain": 0.75,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 100, "lowpassHz": 1500 }
+    }
+  ]
+}

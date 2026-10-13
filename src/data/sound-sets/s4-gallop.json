@@ -1,0 +1,34 @@
+{
+  "id": "s4-gallop",
+  "label": "S4 Atrial Gallop",
+  "description": "Fourth heart sound occurring in late diastole immediately prior to S1 due to atrial contraction into a non-compliant ventricle. Cadence mimics 'Ten-nes-see'.",
+  "events": [
+    {
+      "kind": "transient",
+      "component": "S4",
+      "sample": "s4",
+      "at": { "anchor": "nextS1", "ms": -90 },
+      "gain": 1.3,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 40, "lowpassHz": 300 }
+    },
+    {
+      "kind": "transient",
+      "component": "S1",
+      "sample": "s1-apex",
+      "at": { "anchor": "S1" },
+      "gain": 1.0,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 80, "lowpassHz": 1200 }
+    },
+    {
+      "kind": "transient",
+      "component": "S2",
+      "sample": "s2-base",
+      "at": { "anchor": "S2" },
+      "gain": 0.9,
+      "playbackRate": 1.0,
+      "filter": { "highpassHz": 100, "lowpassHz": 1500 }
+    }
+  ]
+}
