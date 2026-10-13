@@ -89,4 +89,28 @@ describe('CardiacAudioPlayer', () => {
     expect(player.getBpm()).toBe(120);
     expect(player.getIsPlaying()).toBe(true);
   });
+
+  it('supports non-looping mode and calls onEnded when voices complete', async () => {
+    const onEnded = vi.fn();
+    player.setLoop(false);
+    player.setOnEnded(onEnded);
+
+    await player.play();
+    expect(player.getIsPlaying()).toBe(true);
+
+    // End active voices
+    for (const source of mockCtx.createdSourceNodes) {
+      source.onended?.();
+    }
+
+    expect(player.getIsPlaying()).toBe(false);
+    expect(onEnded).toHaveBeenCalledOnce();
+  });
+
+  it('loads and caches decoded custom audio data', async () => {
+    const fakeData = new ArrayBuffer(64);
+    const buffer = await player.loadAudioData('custom', fakeData);
+    expect(buffer).toBeDefined();
+    expect(player.getSampleLoader().getBuffer('custom')).toBe(buffer);
+  });
 });

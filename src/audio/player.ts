@@ -133,6 +133,29 @@ export class CardiacAudioPlayer {
     return this.isPlaying;
   }
 
+  private loop = true;
+  private onEnded?: (() => void) | undefined;
+  private scheduledBeatCount = 0;
+
+  public setLoop(loop: boolean): void {
+    this.loop = loop;
+  }
+
+  public getLoop(): boolean {
+    return this.loop;
+  }
+
+  public setOnEnded(callback?: () => void): void {
+    this.onEnded = callback;
+  }
+
+  public async loadAudioData(id: string, arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
+    const ctx = this.getOrCreateContext();
+    const decoded = await ctx.decodeAudioData(arrayBuffer);
+    this.getSampleLoader().setBuffer(id, decoded);
+    return decoded;
+  }
+
   public async play(): Promise<void> {
     const ctx = this.getOrCreateContext();
     await resumeAudioContext(ctx);
@@ -140,6 +163,7 @@ export class CardiacAudioPlayer {
     if (this.isPlaying) return;
 
     this.isPlaying = true;
+    this.scheduledBeatCount = 0;
     this.nextScheduleTimeSec = ctx.currentTime;
     this.beatGenerator = createBeatGenerator(this.rhythm, this.bpm, this.nextScheduleTimeSec);
     this.beatBuffer = [];
@@ -163,6 +187,7 @@ export class CardiacAudioPlayer {
     this.isPlaying = false;
     this.beatGenerator = null;
     this.beatBuffer = [];
+    this.scheduledBeatCount = 0;
   }
 
   private stopAllVoices(): void {
@@ -198,9 +223,13 @@ export class CardiacAudioPlayer {
     // Pull beats from generator until we reach windowEndSec
     let lastBeat = this.beatBuffer[this.beatBuffer.length - 1];
     while (!lastBeat || lastBeat.start < windowEndSec) {
+      if (!this.loop && this.scheduledBeatCount >= 1) {
+        break;
+      }
       const nextBeat = this.beatGenerator.next().value;
       if (!nextBeat) break;
       this.beatBuffer.push(nextBeat);
+      this.scheduledBeatCount++;
       lastBeat = nextBeat;
     }
 
@@ -296,6 +325,10 @@ export class CardiacAudioPlayer {
         lowpass?.disconnect();
       } catch {
         // Already disconnected
+      }
+      if (!this.loop && this.scheduledBeatCount >= 1 && this.activeVoices.size === 0) {
+        this.stop();
+        this.onEnded?.();
       }
     };
   }
