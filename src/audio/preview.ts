@@ -202,33 +202,18 @@ export class AudioPreviewPlayer {
   public setHighpass(frequencyHz?: number): void {
     this.highpassCutoffHz = frequencyHz;
     if (this.highpassFilterNode && this.audioContext) {
-      if (frequencyHz !== undefined && frequencyHz > 0) {
-        this.highpassFilterNode.frequency.setValueAtTime(
-          frequencyHz,
-          this.audioContext.currentTime,
-        );
-      } else {
-        // Bypass highpass by setting to minimum sub-audible frequency
-        this.highpassFilterNode.frequency.setValueAtTime(
-          HIGHPASS_BYPASS_FREQ_HZ,
-          this.audioContext.currentTime,
-        );
-      }
+      const hz =
+        frequencyHz !== undefined && frequencyHz > 0 ? frequencyHz : HIGHPASS_BYPASS_FREQ_HZ;
+      this.highpassFilterNode.frequency.setValueAtTime(hz, this.audioContext.currentTime);
     }
   }
 
   public setLowpass(frequencyHz?: number): void {
     this.lowpassCutoffHz = frequencyHz;
     if (this.lowpassFilterNode && this.audioContext) {
-      if (frequencyHz !== undefined && frequencyHz > 0) {
-        this.lowpassFilterNode.frequency.setValueAtTime(frequencyHz, this.audioContext.currentTime);
-      } else {
-        // Bypass lowpass by setting above Nyquist / audible range
-        this.lowpassFilterNode.frequency.setValueAtTime(
-          LOWPASS_BYPASS_FREQ_HZ,
-          this.audioContext.currentTime,
-        );
-      }
+      const hz =
+        frequencyHz !== undefined && frequencyHz > 0 ? frequencyHz : LOWPASS_BYPASS_FREQ_HZ;
+      this.lowpassFilterNode.frequency.setValueAtTime(hz, this.audioContext.currentTime);
     }
   }
 

@@ -305,10 +305,7 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       ...(filter.lowpassHz !== undefined ? { lowpassHz: filter.lowpassHz } : {}),
     };
 
-    const updated: SoundEvent =
-      current.kind === 'transient'
-        ? { ...current, filter: nextFilter }
-        : { ...current, filter: nextFilter };
+    const updated = { ...current, filter: nextFilter } as SoundEvent;
 
     updateEvent(selectedEventIndex, updated);
   },
