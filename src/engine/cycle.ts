@@ -1,4 +1,4 @@
-import type { CycleParams, Position } from './schema';
+import type { CycleParams, Landmark, Position } from './schema';
 
 export interface CycleLandmarks {
   readonly S1: number;
@@ -57,27 +57,24 @@ export function calculateLandmarks(
   };
 }
 
+interface AnchorInterval {
+  readonly base: (l: CycleLandmarks) => number;
+  readonly duration: (l: CycleLandmarks) => number;
+}
+
+const ANCHOR_RESOLVERS: Record<Landmark, AnchorInterval> = {
+  S1: { base: (l) => l.S1, duration: (l) => l.systoleMs },
+  S2: { base: (l) => l.S2, duration: (l) => l.diastoleMs },
+  nextS1: { base: (l) => l.nextS1, duration: () => 0 },
+};
+
 /**
  * Resolves a Position descriptor (anchor + ms or fraction) into exact milliseconds
  * relative to the start of the cardiac cycle (S1 = 0 ms).
  */
 export function resolvePositionMs(position: Position, landmarks: CycleLandmarks): number {
-  const { anchor, ms, fraction } = position;
-
-  let baseMs: number;
-  if (anchor === 'S1') {
-    baseMs = landmarks.S1;
-    if (fraction !== undefined) {
-      return Math.round(baseMs + fraction * landmarks.systoleMs);
-    }
-  } else if (anchor === 'S2') {
-    baseMs = landmarks.S2;
-    if (fraction !== undefined) {
-      return Math.round(baseMs + fraction * landmarks.diastoleMs);
-    }
-  } else {
-    baseMs = landmarks.nextS1;
-  }
-
-  return Math.round(baseMs + (ms ?? 0));
+  const { anchor, ms = 0, fraction } = position;
+  const resolver = ANCHOR_RESOLVERS[anchor];
+  const offset = fraction !== undefined ? fraction * resolver.duration(landmarks) : ms;
+  return Math.round(resolver.base(landmarks) + offset);
 }

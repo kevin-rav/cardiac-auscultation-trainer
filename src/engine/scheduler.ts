@@ -1,7 +1,7 @@
 import type { Beat } from './beats';
 import { calculateLandmarks, resolvePositionMs } from './cycle';
 import { generateMurmurCurve } from './envelope';
-import type { ResolvedEvent } from './resolve';
+import type { ResolvedEvent, ResolvedMurmurEvent, ResolvedTransientEvent } from './resolve';
 import type { CycleParams, Filter } from './schema';
 
 export interface ScheduledEvent {
@@ -20,6 +20,74 @@ export interface ScheduledEvent {
         readonly curve: Float32Array;
       }
     | undefined;
+}
+
+function scheduleTransientEvent(
+  event: ResolvedTransientEvent,
+  beat: Beat,
+  landmarks: ReturnType<typeof calculateLandmarks>,
+  eventIndex: number,
+  fromSec: number,
+  toSec: number,
+): ScheduledEvent | undefined {
+  const offsetMs = resolvePositionMs(event.at, landmarks);
+  const eventTimeSec = beat.start + offsetMs / 1000;
+
+  if (eventTimeSec < fromSec || eventTimeSec >= toSec) {
+    return undefined;
+  }
+
+  return {
+    id: `beat-${beat.index.toString()}-ev-${eventIndex.toString()}-${event.component}`,
+    component: event.component,
+    sampleId: event.sampleId,
+    time: eventTimeSec,
+    gain: event.gain,
+    playbackRate: event.playbackRate,
+    ...(event.filter ? { filter: event.filter } : {}),
+  };
+}
+
+function scheduleMurmurEvent(
+  event: ResolvedMurmurEvent,
+  beat: Beat,
+  landmarks: ReturnType<typeof calculateLandmarks>,
+  eventIndex: number,
+  fromSec: number,
+  toSec: number,
+): ScheduledEvent | undefined {
+  const startOffsetMs = resolvePositionMs(event.from, landmarks);
+  const endOffsetMs = resolvePositionMs(event.to, landmarks);
+  const durationMs = Math.max(10, endOffsetMs - startOffsetMs);
+  const eventTimeSec = beat.start + startOffsetMs / 1000;
+
+  if (eventTimeSec < fromSec || eventTimeSec >= toSec) {
+    return undefined;
+  }
+
+  const curve = generateMurmurCurve(event.shape, durationMs, event.edgeMs);
+  if (event.gain !== 1) {
+    for (let c = 0; c < curve.length; c++) {
+      const val = curve[c];
+      if (val !== undefined) {
+        curve[c] = val * event.gain;
+      }
+    }
+  }
+
+  return {
+    id: `beat-${beat.index.toString()}-ev-${eventIndex.toString()}-${event.component}`,
+    component: event.component,
+    sampleId: event.sampleId,
+    time: eventTimeSec,
+    gain: event.gain,
+    playbackRate: 1.0,
+    ...(event.filter ? { filter: event.filter } : {}),
+    envelope: {
+      durationMs,
+      curve,
+    },
+  };
 }
 
 /**
@@ -54,52 +122,13 @@ export function scheduleEvents(
         continue;
       }
 
-      if (event.kind === 'transient') {
-        const offsetMs = resolvePositionMs(event.at, landmarks);
-        const eventTimeSec = beat.start + offsetMs / 1000;
+      const scheduledEvent =
+        event.kind === 'transient'
+          ? scheduleTransientEvent(event, beat, landmarks, i, fromSec, toSec)
+          : scheduleMurmurEvent(event, beat, landmarks, i, fromSec, toSec);
 
-        if (eventTimeSec >= fromSec && eventTimeSec < toSec) {
-          scheduled.push({
-            id: `beat-${beat.index.toString()}-ev-${i.toString()}-${event.component}`,
-            component: event.component,
-            sampleId: event.sampleId,
-            time: eventTimeSec,
-            gain: event.gain,
-            playbackRate: event.playbackRate,
-            ...(event.filter ? { filter: event.filter } : {}),
-          });
-        }
-      } else {
-        const startOffsetMs = resolvePositionMs(event.from, landmarks);
-        const endOffsetMs = resolvePositionMs(event.to, landmarks);
-        const durationMs = Math.max(10, endOffsetMs - startOffsetMs);
-        const eventTimeSec = beat.start + startOffsetMs / 1000;
-
-        if (eventTimeSec >= fromSec && eventTimeSec < toSec) {
-          const curve = generateMurmurCurve(event.shape, durationMs, event.edgeMs);
-          if (event.gain !== 1) {
-            for (let c = 0; c < curve.length; c++) {
-              const val = curve[c];
-              if (val !== undefined) {
-                curve[c] = val * event.gain;
-              }
-            }
-          }
-
-          scheduled.push({
-            id: `beat-${beat.index.toString()}-ev-${i.toString()}-${event.component}`,
-            component: event.component,
-            sampleId: event.sampleId,
-            time: eventTimeSec,
-            gain: event.gain,
-            playbackRate: 1.0,
-            ...(event.filter ? { filter: event.filter } : {}),
-            envelope: {
-              durationMs,
-              curve,
-            },
-          });
-        }
+      if (scheduledEvent) {
+        scheduled.push(scheduledEvent);
       }
     }
   }

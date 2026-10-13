@@ -256,13 +256,15 @@ export const useTunerStore = create<TunerState>((set, get) => ({
     const current = soundSet.events[selectedEventIndex];
     if (!current) return;
 
-    const updated = {
-      ...current,
-      filter: {
-        ...(filter.highpassHz !== undefined ? { highpassHz: filter.highpassHz } : {}),
-        ...(filter.lowpassHz !== undefined ? { lowpassHz: filter.lowpassHz } : {}),
-      },
-    } as SoundEvent;
+    const nextFilter = {
+      ...(filter.highpassHz !== undefined ? { highpassHz: filter.highpassHz } : {}),
+      ...(filter.lowpassHz !== undefined ? { lowpassHz: filter.lowpassHz } : {}),
+    };
+
+    const updated: SoundEvent =
+      current.kind === 'transient'
+        ? { ...current, filter: nextFilter }
+        : { ...current, filter: nextFilter };
 
     updateEvent(selectedEventIndex, updated);
   },

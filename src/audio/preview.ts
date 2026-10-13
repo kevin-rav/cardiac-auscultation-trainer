@@ -116,11 +116,14 @@ export class AudioPreviewPlayer {
     const ctx = this.getOrCreateAudioContext();
     this.sampleLoader ??= new SampleLoader(ctx);
 
-    const decodedBuffer = await this.sampleLoader.loadSample(sampleAudioUrl, sampleAudioUrl);
-    if (decodedBuffer) {
+    try {
+      const decodedBuffer = await this.sampleLoader.loadSample(sampleAudioUrl, sampleAudioUrl);
       this.loadedAudioBuffer = decodedBuffer;
+      return decodedBuffer;
+    } catch {
+      this.loadedAudioBuffer = null;
+      return null;
     }
-    return decodedBuffer;
   }
 
   public setBuffer(buffer: AudioBuffer | null): void {

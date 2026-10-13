@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,9 @@ const AUDIO_SOURCES = [
 ] as const;
 
 export function AudioSourcePicker() {
+  const soundSet = useTunerStore((s) => s.soundSet);
+  const presets = useTunerStore((s) => s.presets);
+  const loadPreset = useTunerStore((s) => s.loadPreset);
   const signalSource = useTunerStore((s) => s.signalSource);
   const customFileName = useTunerStore((s) => s.customFileName);
   const isPlaying = useTunerStore((s) => s.isPlaying);
@@ -33,12 +36,19 @@ export function AudioSourcePicker() {
 
   const [justApplied, setJustApplied] = useState(false);
 
+  useEffect(() => {
+    if (!justApplied) return;
+    const timer = setTimeout(() => {
+      setJustApplied(false);
+    }, 1500);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [justApplied]);
+
   const handleApply = () => {
     applyChanges();
     setJustApplied(true);
-    setTimeout(() => {
-      setJustApplied(false);
-    }, 1500);
   };
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +75,30 @@ export function AudioSourcePicker() {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
+        {/* Preset Sound Set Selector */}
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="preset-sound-set-select"
+            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Clinical Sound Set / Preset:
+          </label>
+          <select
+            id="preset-sound-set-select"
+            className="flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            value={soundSet.id}
+            onChange={(e) => {
+              loadPreset(e.target.value);
+            }}
+            data-testid="preset-sound-set-select"
+          >
+            {presets.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
+        </div>
         {/* Playback Mode Switcher */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

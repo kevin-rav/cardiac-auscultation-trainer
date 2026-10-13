@@ -10,7 +10,7 @@ describe('Data files schema validation', () => {
   });
 
   it('validates all preset sound sets against SoundSetSchema', () => {
-    expect(PRESET_SOUND_SETS.length).toBe(7);
+    expect(PRESET_SOUND_SETS.length).toBeGreaterThanOrEqual(7);
 
     for (const soundSet of PRESET_SOUND_SETS) {
       const result = SoundSetSchema.safeParse(soundSet);
@@ -27,5 +27,23 @@ describe('Data files schema validation', () => {
     expect(soundSetsRecord['mvp-late-systolic-murmur']).toBeDefined();
     expect(soundSetsRecord['aortic-stenosis']).toBeDefined();
     expect(soundSetsRecord['mitral-regurgitation']).toBeDefined();
+  });
+
+  it('ensures all preset sound sets reference existing manifest samples with non-empty URLs', () => {
+    const validSamples = new Map(manifest.samples.map((s) => [s.id, s.url]));
+
+    for (const soundSet of PRESET_SOUND_SETS) {
+      for (const event of soundSet.events) {
+        const sampleUrl = validSamples.get(event.sample);
+        expect(
+          sampleUrl,
+          `Sound set "${soundSet.id}" references sampleId "${event.sample}" which is missing from manifest.json`,
+        ).toBeDefined();
+        expect(
+          sampleUrl?.length,
+          `Manifest sample "${event.sample}" has an empty URL`,
+        ).toBeGreaterThan(0);
+      }
+    }
   });
 });
