@@ -18,6 +18,7 @@ export class AudioPreviewPlayer {
   private gainNode: GainNode | null = null;
 
   private currentBuffer: AudioBuffer | null = null;
+  private customBuffer: AudioBuffer | null = null;
   private isPlaying = false;
   private loop = false;
   private gain = 1;
@@ -37,8 +38,14 @@ export class AudioPreviewPlayer {
   public async loadAudioData(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
     const ctx = this.getContext();
     const buffer = await ctx.decodeAudioData(arrayBuffer);
+    this.customBuffer = buffer;
     this.currentBuffer = buffer;
     return buffer;
+  }
+
+  public restoreCustomBuffer(): boolean {
+    this.currentBuffer = this.customBuffer;
+    return this.currentBuffer !== null;
   }
 
   public setBuffer(buffer: AudioBuffer | null): void {

@@ -143,6 +143,20 @@ describe('AudioPreviewPlayer', () => {
     expect(player.getBuffer()).toBe(buffer);
   });
 
+  it('restores loaded custom audio buffer after synthetic sound is generated', async () => {
+    expect(player.restoreCustomBuffer()).toBe(false);
+
+    const fakeData = new ArrayBuffer(64);
+    const buffer = await player.loadAudioData(fakeData);
+    expect(player.getBuffer()).toBe(buffer);
+
+    player.generateSyntheticBuffer('click');
+    expect(player.getBuffer()).not.toBe(buffer);
+
+    expect(player.restoreCustomBuffer()).toBe(true);
+    expect(player.getBuffer()).toBe(buffer);
+  });
+
   it('disposes player and closes context', () => {
     player.play();
     player.dispose();
