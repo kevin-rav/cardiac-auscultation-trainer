@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AudioPreviewPlayer, CardiacAudioPlayer, type TestSignalType } from '../audio';
+import { CardiacAudioPlayer } from '../audio';
 import {
   SoundSetSchema,
   type SoundEvent,
@@ -13,15 +13,7 @@ import { PRESET_SOUND_SETS, manifest } from '../data';
 export type { SoundEvent, SoundSet, Filter, Component, MurmurShape };
 
 export type SampleSource =
-  | 'event-sample'
-  | 's1-apex'
-  | 's2-base'
-  | 's3'
-  | 's4'
-  | 'click'
-  | 'murmur-noise'
-  | 'custom'
-  | TestSignalType;
+  'event-sample' | 's1-apex' | 's2-base' | 's3' | 's4' | 'click' | 'murmur-noise' | 'custom';
 
 export type SignalSource = SampleSource;
 export type PlaybackMode = 'full-cycle' | 'isolated';
@@ -97,15 +89,9 @@ function formatIssues(issues: { path: PropertyKey[]; message: string }[]): strin
   return issues.map((issue) => `${issue.path.map(String).join('.')}: ${issue.message}`).join(', ');
 }
 
-let previewPlayer: AudioPreviewPlayer | null = null;
 let cardiacPlayer: CardiacAudioPlayer | null = null;
 
-function getPlayer(): AudioPreviewPlayer {
-  previewPlayer ??= new AudioPreviewPlayer();
-  return previewPlayer;
-}
-
-function getCardiacPlayer(): CardiacAudioPlayer {
+function getPlayer(): CardiacAudioPlayer {
   if (!cardiacPlayer) {
     cardiacPlayer = new CardiacAudioPlayer(useTunerStore.getState().soundSet, undefined, manifest);
     void cardiacPlayer.getSampleLoader().preloadManifest(manifest);
@@ -113,25 +99,36 @@ function getCardiacPlayer(): CardiacAudioPlayer {
   return cardiacPlayer;
 }
 
-function syncPlayerEvent(player: AudioPreviewPlayer, event: SoundEvent): void {
-  player.setGain(event.gain);
-  player.setPlaybackRate(event.kind === 'transient' ? event.playbackRate : 1);
-  player.setHighpass(event.filter?.highpassHz);
-  player.setLowpass(event.filter?.lowpassHz);
-}
-
-// For headless unit testing
-export function setPreviewPlayerInstance(player: AudioPreviewPlayer | null): void {
-  previewPlayer = player;
-}
-
-export function setCardiacPlayerInstance(player: CardiacAudioPlayer | null): void {
+export function setPlayerInstance(player: CardiacAudioPlayer | null): void {
   cardiacPlayer = player;
 }
 
-function syncActivePlayers(updatedSoundSet: SoundSet): void {
+export const setCardiacPlayerInstance = setPlayerInstance;
+export const setPreviewPlayerInstance = setPlayerInstance;
+
+function getActiveSoundSet(state: TunerState): SoundSet {
+  const { soundSet, selectedEventIndex, playbackMode, signalSource } = state;
+  if (playbackMode === 'full-cycle') {
+    return soundSet;
+  }
+  const current = soundSet.events[selectedEventIndex] ?? soundSet.events[0];
+  if (!current) {
+    return soundSet;
+  }
+  const sampleOverride =
+    signalSource === 'event-sample' || signalSource === 'custom' ? current.sample : signalSource;
+  const isolatedEvent: SoundEvent = { ...current, sample: sampleOverride };
+  return {
+    ...soundSet,
+    events: [isolatedEvent],
+  };
+}
+
+function syncPlayer(state: TunerState): void {
   if (cardiacPlayer) {
-    cardiacPlayer.setSoundSet(updatedSoundSet);
+    cardiacPlayer.setBpm(state.bpm);
+    cardiacPlayer.setLoop(state.loop);
+    cardiacPlayer.setSoundSet(getActiveSoundSet(state));
   }
 }
 
@@ -148,29 +145,11 @@ export const useTunerStore = create<TunerState>((set, get) => ({
   audioError: null,
 
   selectEvent: (index) => {
-    const { soundSet, signalSource, isPlaying, playbackMode } = get();
+    const { soundSet, isPlaying } = get();
     if (index >= 0 && index < soundSet.events.length) {
       set({ selectedEventIndex: index });
-      const target = soundSet.events[index];
-      if (isPlaying && target && playbackMode === 'isolated') {
-        syncPlayerEvent(getPlayer(), target);
-      }
-      if (signalSource === 'event-sample') {
-        const nextEvent = soundSet.events[index];
-        if (nextEvent) {
-          void getPlayer()
-            .loadSampleUrl(`/sounds/${nextEvent.sample}.wav`)
-            .then((buffer) => {
-              if (
-                buffer &&
-                get().isPlaying &&
-                get().selectedEventIndex === index &&
-                get().playbackMode === 'isolated'
-              ) {
-                get().play();
-              }
-            });
-        }
+      if (isPlaying) {
+        syncPlayer(get());
       }
     }
   },
@@ -193,20 +172,11 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       validationError: validated.success ? null : formatIssues(validated.error.issues),
     });
 
-    // Sync full cardiac cycle player immediately so next upcoming beat uses new settings
-    syncActivePlayers(updatedSoundSet);
-
-    // Sync live preview audio player if current event is playing in isolated preview mode
-    if (index === get().selectedEventIndex) {
-      syncPlayerEvent(getPlayer(), updated);
-      if (get().playbackMode === 'isolated' && get().signalSource === 'event-sample') {
-        void getPlayer().loadSampleUrl(`/sounds/${updated.sample}.wav`);
-      }
-    }
+    syncPlayer(get());
   },
 
   addEvent: (kind) => {
-    const { soundSet, isPlaying } = get();
+    const { soundSet } = get();
     const newEvent: SoundEvent =
       kind === 'transient'
         ? {
@@ -238,14 +208,11 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       validationError: null,
     });
 
-    syncActivePlayers(updatedSoundSet);
-    if (isPlaying) {
-      syncPlayerEvent(getPlayer(), newEvent);
-    }
+    syncPlayer(get());
   },
 
   removeEvent: (index) => {
-    const { soundSet, selectedEventIndex, isPlaying } = get();
+    const { soundSet, selectedEventIndex } = get();
     if (soundSet.events.length <= 1) {
       set({ validationError: 'A sound set must contain at least one event.' });
       return;
@@ -262,11 +229,7 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       validationError: null,
     });
 
-    syncActivePlayers(updatedSoundSet);
-    const active = nextEvents[resolvedIndex];
-    if (isPlaying && active) {
-      syncPlayerEvent(getPlayer(), active);
-    }
+    syncPlayer(get());
   },
 
   updateSoundSetMetadata: (label, id, description) => {
@@ -285,7 +248,7 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       validationError: validated.success ? null : formatIssues(validated.error.issues),
     });
 
-    syncActivePlayers(updatedSoundSet);
+    syncPlayer(get());
   },
 
   setFilter: (filter) => {
@@ -306,7 +269,6 @@ export const useTunerStore = create<TunerState>((set, get) => ({
     };
 
     const updated = { ...current, filter: nextFilter } as SoundEvent;
-
     updateEvent(selectedEventIndex, updated);
   },
 
@@ -338,9 +300,6 @@ export const useTunerStore = create<TunerState>((set, get) => ({
     const clamped = Math.max(30, Math.min(220, Math.round(bpm)));
     set({ bpm: clamped });
     getPlayer().setBpm(clamped);
-    if (cardiacPlayer) {
-      cardiacPlayer.setBpm(clamped);
-    }
   },
 
   setPlaybackMode: (mode) => {
@@ -356,52 +315,22 @@ export const useTunerStore = create<TunerState>((set, get) => ({
 
   setSignalSource: (source) => {
     set({ signalSource: source, audioError: null });
-    const player = getPlayer();
-    if (source !== 'custom') {
-      if (
-        source === 'click' ||
-        source === 'heart-beat' ||
-        source === 'murmur-noise' ||
-        source === 'murmur'
-      ) {
-        player.generateSyntheticBuffer(source === 'murmur' ? 'murmur-noise' : source);
+    if (source === 'custom' && !get().customFileName) {
+      if (get().isPlaying) {
+        get().stop();
       }
-      const { soundSet, selectedEventIndex } = get();
-      const current = soundSet.events[selectedEventIndex];
-      const sampleId = source === 'event-sample' ? (current?.sample ?? 's1-apex') : source;
-      void player.loadSampleUrl(`/sounds/${sampleId}.wav`).then((buffer) => {
-        if (
-          buffer &&
-          get().isPlaying &&
-          get().signalSource === source &&
-          get().playbackMode === 'isolated'
-        ) {
-          get().play();
-        }
-      });
-      if (get().isPlaying && get().playbackMode === 'isolated') {
-        get().play();
-      }
-    } else {
-      if (typeof player.restoreCustomBuffer === 'function') {
-        player.restoreCustomBuffer();
-      } else if (typeof player.setBuffer === 'function') {
-        player.setBuffer(null);
-      }
-      if (!get().customFileName) {
-        if (get().isPlaying) {
-          get().stop();
-        }
-      } else if (get().isPlaying) {
-        get().play();
-      }
+      return;
+    }
+    syncPlayer(get());
+    if (get().isPlaying) {
+      get().play();
     }
   },
 
   loadCustomAudio: async (name, arrayBuffer) => {
     const player = getPlayer();
     try {
-      await player.loadAudioData(arrayBuffer);
+      await player.loadAudioData('custom', arrayBuffer);
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       set({ audioError: `Could not decode ${name}: ${reason}` });
@@ -412,83 +341,29 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       customFileName: name,
       audioError: null,
     });
+    syncPlayer(get());
     if (get().isPlaying) {
       get().play();
     }
   },
 
   play: () => {
-    const { soundSet, selectedEventIndex, loop, bpm, signalSource, customFileName, playbackMode } =
-      get();
-
-    if (playbackMode === 'full-cycle') {
-      getPlayer().stop();
-      const cp = getCardiacPlayer();
-      cp.setSoundSet(soundSet);
-      cp.setBpm(bpm);
-      void cp.play();
-      set({ isPlaying: true });
+    const { playbackMode, signalSource, customFileName } = get();
+    if (playbackMode === 'isolated' && signalSource === 'custom' && !customFileName) {
       return;
     }
 
-    if (cardiacPlayer) {
-      cardiacPlayer.stop();
-    }
-
-    if (signalSource === 'custom' && !customFileName) {
-      return;
-    }
-
-    const current = soundSet.events[selectedEventIndex];
     const player = getPlayer();
-
-    if (
-      signalSource === 'click' ||
-      signalSource === 'heart-beat' ||
-      signalSource === 'murmur-noise' ||
-      signalSource === 'murmur'
-    ) {
-      player.generateSyntheticBuffer(signalSource === 'murmur' ? 'murmur-noise' : signalSource);
-    } else if (signalSource === 'custom' && typeof player.restoreCustomBuffer === 'function') {
-      player.restoreCustomBuffer();
-    }
-
-    const playbackRate = current?.kind === 'transient' ? current.playbackRate : 1;
-    const gain = current ? current.gain : 1;
-    const highpassHz = current?.filter?.highpassHz;
-    const lowpassHz = current?.filter?.lowpassHz;
-
-    const playOptions = {
-      gain,
-      playbackRate,
-      loop,
-      bpm,
-      ...(highpassHz !== undefined ? { highpassHz } : {}),
-      ...(lowpassHz !== undefined ? { lowpassHz } : {}),
-      onEnded: () => {
-        set({ isPlaying: false });
-      },
-    };
-
+    syncPlayer(get());
+    player.setOnEnded(() => {
+      set({ isPlaying: false });
+    });
+    void player.play();
     set({ isPlaying: true });
-    player.play(playOptions);
-
-    if (signalSource !== 'custom' && signalSource !== 'click' && signalSource !== 'heart-beat') {
-      const sampleId =
-        signalSource === 'event-sample' ? (current?.sample ?? 's1-apex') : signalSource;
-      void player.loadSampleUrl(`/sounds/${sampleId}.wav`).then((buffer) => {
-        if (buffer && get().isPlaying && get().playbackMode === 'isolated') {
-          player.play(playOptions);
-        }
-      });
-    }
   },
 
   stop: () => {
     getPlayer().stop();
-    if (cardiacPlayer) {
-      cardiacPlayer.stop();
-    }
     set({ isPlaying: false });
   },
 
@@ -522,15 +397,9 @@ export const useTunerStore = create<TunerState>((set, get) => ({
         validationError: null,
       });
 
-      syncActivePlayers(validated.data);
-
-      // Stop previous playback and sync parameters
+      syncPlayer(get());
       getPlayer().stop();
-      if (cardiacPlayer) {
-        cardiacPlayer.stop();
-      }
       set({ isPlaying: false });
-
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Invalid JSON formatting';
@@ -540,20 +409,12 @@ export const useTunerStore = create<TunerState>((set, get) => ({
   },
 
   applyChanges: () => {
-    const { soundSet, isPlaying, playbackMode, bpm } = get();
-    syncActivePlayers(soundSet);
+    const { isPlaying } = get();
+    syncPlayer(get());
     if (isPlaying) {
-      if (playbackMode === 'full-cycle') {
-        const cp = getCardiacPlayer();
-        cp.stop();
-        cp.setSoundSet(soundSet);
-        cp.setBpm(bpm);
-        void cp.play();
-      } else {
-        const p = getPlayer();
-        p.stop();
-        get().play();
-      }
+      const player = getPlayer();
+      player.stop();
+      void player.play();
     }
   },
 
@@ -564,20 +425,12 @@ export const useTunerStore = create<TunerState>((set, get) => ({
     if (!target) return;
 
     getPlayer().stop();
-    if (cardiacPlayer) {
-      cardiacPlayer.stop();
-      cardiacPlayer.setSoundSet(target);
-    }
     set({
       soundSet: target,
       selectedEventIndex: 0,
       validationError: null,
       isPlaying: false,
     });
-
-    const firstEvent = target.events[0];
-    if (firstEvent && get().signalSource === 'event-sample') {
-      void getPlayer().loadSampleUrl(`/sounds/${firstEvent.sample}.wav`);
-    }
+    syncPlayer(get());
   },
 }));

@@ -1,40 +1,31 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AudioTuner } from './AudioTuner';
-import { useTunerStore, setPreviewPlayerInstance, setCardiacPlayerInstance } from '../../store';
-import type { AudioPreviewPlayer, CardiacAudioPlayer } from '../../audio';
+import { useTunerStore, setPlayerInstance } from '../../store';
+import type { CardiacAudioPlayer } from '../../audio';
 
 const mockPlayer = {
-  play: vi.fn(),
-  stop: vi.fn(),
-  setGain: vi.fn(),
-  setPlaybackRate: vi.fn(),
-  setHighpass: vi.fn(),
-  setLowpass: vi.fn(),
-  setLoop: vi.fn(),
-  setBpm: vi.fn(),
-  loadSampleUrl: vi.fn().mockResolvedValue({}),
-  loadAudioData: vi.fn().mockResolvedValue({}),
-  restoreCustomBuffer: vi.fn(),
-  setBuffer: vi.fn(),
-} as unknown as AudioPreviewPlayer;
-
-const initialState = useTunerStore.getState();
-
-const mockCardiacPlayer = {
   play: vi.fn().mockResolvedValue(undefined),
   stop: vi.fn(),
   setSoundSet: vi.fn(),
   setBpm: vi.fn(),
+  setLoop: vi.fn(),
+  setOnEnded: vi.fn(),
   setVolume: vi.fn(),
-  getSampleLoader: () => ({ preloadManifest: vi.fn().mockResolvedValue({}) }),
+  loadAudioData: vi.fn().mockResolvedValue({}),
+  getSampleLoader: () => ({
+    preloadManifest: vi.fn().mockResolvedValue({}),
+    setBuffer: vi.fn(),
+    getBuffer: vi.fn(),
+  }),
 } as unknown as CardiacAudioPlayer;
+
+const initialState = useTunerStore.getState();
 
 describe('AudioTuner UI Component', () => {
   beforeEach(() => {
     useTunerStore.setState(initialState, true);
-    setPreviewPlayerInstance(mockPlayer);
-    setCardiacPlayerInstance(mockCardiacPlayer);
+    setPlayerInstance(mockPlayer);
     useTunerStore.setState({ isPlaying: false });
     vi.clearAllMocks();
   });
