@@ -196,9 +196,7 @@ export function AudioSourcePicker() {
               variant={isPlaying ? 'destructive' : 'default'}
               onClick={togglePlay}
               data-testid="play-btn"
-              disabled={
-                playbackMode === 'isolated' && signalSource === 'custom' && !customFileName
-              }
+              disabled={playbackMode === 'isolated' && signalSource === 'custom' && !customFileName}
             >
               {isPlaying
                 ? '■ Stop'
