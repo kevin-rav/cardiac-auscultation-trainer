@@ -34,10 +34,18 @@ export const ComponentSchema = z.enum([
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
 
-export const FilterSchema = z.object({
-  highpassHz: z.number().min(20).max(2000).optional(),
-  lowpassHz: z.number().min(200).max(20000).optional(),
-});
+export const FilterSchema = z
+  .object({
+    highpassHz: z.number().min(20).max(2000).optional(),
+    lowpassHz: z.number().min(200).max(20000).optional(),
+  })
+  .refine(
+    (f) => f.highpassHz === undefined || f.lowpassHz === undefined || f.highpassHz < f.lowpassHz,
+    {
+      message: 'highpass cutoff must be lower than lowpass cutoff',
+      path: ['highpassHz'],
+    },
+  );
 export type Filter = z.infer<typeof FilterSchema>;
 
 export const TransientSchema = z.object({

@@ -19,16 +19,24 @@ export function FilterControls() {
   const lowpassHz = filter?.lowpassHz;
 
   const handleHighpassChange = (value: number | undefined) => {
+    let nextHighpass = value;
+    if (nextHighpass !== undefined && lowpassHz !== undefined && nextHighpass >= lowpassHz) {
+      nextHighpass = Math.max(20, lowpassHz - 10);
+    }
     setFilter({
-      highpassHz: value,
+      highpassHz: nextHighpass,
       ...(lowpassHz !== undefined ? { lowpassHz } : {}),
     });
   };
 
   const handleLowpassChange = (value: number | undefined) => {
+    let nextLowpass = value;
+    if (nextLowpass !== undefined && highpassHz !== undefined && nextLowpass <= highpassHz) {
+      nextLowpass = Math.min(20000, highpassHz + 10);
+    }
     setFilter({
       ...(highpassHz !== undefined ? { highpassHz } : {}),
-      lowpassHz: value,
+      lowpassHz: nextLowpass,
     });
   };
 
@@ -60,7 +68,8 @@ export function FilterControls() {
               variant="ghost"
               size="xs"
               onClick={() => {
-                handleHighpassChange(highpassHz !== undefined ? undefined : 80);
+                const defaultHp = lowpassHz !== undefined ? Math.min(80, lowpassHz - 10) : 80;
+                handleHighpassChange(highpassHz !== undefined ? undefined : defaultHp);
               }}
             >
               {highpassHz !== undefined ? 'Disable' : 'Enable'}
@@ -71,7 +80,7 @@ export function FilterControls() {
             <div className="flex flex-col gap-3 pt-1">
               <Slider
                 min={20}
-                max={2000}
+                max={lowpassHz !== undefined ? Math.max(20, lowpassHz - 10) : 2000}
                 step={10}
                 value={[highpassHz]}
                 onValueChange={(vals) => {
@@ -82,19 +91,23 @@ export function FilterControls() {
                 }}
               />
               <div className="flex flex-wrap gap-1.5">
-                {HP_PRESETS.map((hz) => (
-                  <Button
-                    key={hz}
-                    type="button"
-                    variant={highpassHz === hz ? 'default' : 'outline'}
-                    size="xs"
-                    onClick={() => {
-                      handleHighpassChange(hz);
-                    }}
-                  >
-                    {hz} Hz
-                  </Button>
-                ))}
+                {HP_PRESETS.map((hz) => {
+                  const isCrossing = lowpassHz !== undefined && hz >= lowpassHz;
+                  return (
+                    <Button
+                      key={hz}
+                      type="button"
+                      variant={highpassHz === hz ? 'default' : 'outline'}
+                      size="xs"
+                      disabled={isCrossing}
+                      onClick={() => {
+                        handleHighpassChange(hz);
+                      }}
+                    >
+                      {hz} Hz
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -116,7 +129,8 @@ export function FilterControls() {
               variant="ghost"
               size="xs"
               onClick={() => {
-                handleLowpassChange(lowpassHz !== undefined ? undefined : 1200);
+                const defaultLp = highpassHz !== undefined ? Math.max(1200, highpassHz + 10) : 1200;
+                handleLowpassChange(lowpassHz !== undefined ? undefined : defaultLp);
               }}
             >
               {lowpassHz !== undefined ? 'Disable' : 'Enable'}
@@ -126,7 +140,7 @@ export function FilterControls() {
           {lowpassHz !== undefined && (
             <div className="flex flex-col gap-3 pt-1">
               <Slider
-                min={200}
+                min={highpassHz !== undefined ? Math.min(20000, highpassHz + 10) : 200}
                 max={20000}
                 step={100}
                 value={[lowpassHz]}
@@ -138,19 +152,23 @@ export function FilterControls() {
                 }}
               />
               <div className="flex flex-wrap gap-1.5">
-                {LP_PRESETS.map((hz) => (
-                  <Button
-                    key={hz}
-                    type="button"
-                    variant={lowpassHz === hz ? 'default' : 'outline'}
-                    size="xs"
-                    onClick={() => {
-                      handleLowpassChange(hz);
-                    }}
-                  >
-                    {hz >= 1000 ? `${(hz / 1000).toString()} kHz` : `${hz.toString()} Hz`}
-                  </Button>
-                ))}
+                {LP_PRESETS.map((hz) => {
+                  const isCrossing = highpassHz !== undefined && hz <= highpassHz;
+                  return (
+                    <Button
+                      key={hz}
+                      type="button"
+                      variant={lowpassHz === hz ? 'default' : 'outline'}
+                      size="xs"
+                      disabled={isCrossing}
+                      onClick={() => {
+                        handleLowpassChange(hz);
+                      }}
+                    >
+                      {hz >= 1000 ? `${(hz / 1000).toString()} kHz` : `${hz.toString()} Hz`}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           )}

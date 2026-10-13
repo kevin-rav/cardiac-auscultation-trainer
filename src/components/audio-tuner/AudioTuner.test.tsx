@@ -16,8 +16,11 @@ const mockPlayer = {
   loadAudioData: vi.fn().mockResolvedValue({}),
 } as unknown as AudioPreviewPlayer;
 
+const initialState = useTunerStore.getState();
+
 describe('AudioTuner UI Component', () => {
   beforeEach(() => {
+    useTunerStore.setState(initialState, true);
     setPreviewPlayerInstance(mockPlayer);
     vi.clearAllMocks();
   });
@@ -63,6 +66,22 @@ describe('AudioTuner UI Component', () => {
     fireEvent.click(deleteBtn);
 
     expect(useTunerStore.getState().soundSet.events.length).toBe(2);
+  });
+
+  it('disables filter presets that would cross the opposing cutoff', () => {
+    // S1 default: highpass 80 Hz, lowpass 1200 Hz
+    render(<AudioTuner />);
+
+    // 500 Hz exists in both HP and LP presets (HP is first, LP is second)
+    const buttons500 = screen.getAllByRole('button', { name: '500 Hz' });
+    const hp500Btn = buttons500[0] as HTMLButtonElement;
+    const lp500Btn = buttons500[1] as HTMLButtonElement;
+
+    fireEvent.click(lp500Btn);
+    expect(useTunerStore.getState().soundSet.events[0]?.filter?.lowpassHz).toBe(500);
+
+    // HP preset 500 Hz should now be disabled since lowpass is 500 Hz (highpass must be < lowpass)
+    expect(hp500Btn.disabled).toBe(true);
   });
 
   it('imports valid and invalid JSON through the import panel', () => {

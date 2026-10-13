@@ -60,6 +60,31 @@ describe('Audio Schemas', () => {
       });
       expect(parsed.success).toBe(false);
     });
+
+    it('rejects highpass frequency greater than lowpass frequency', () => {
+      const parsed = FilterSchema.safeParse({
+        highpassHz: 2000,
+        lowpassHz: 200,
+      });
+      expect(parsed.success).toBe(false);
+      if (!parsed.success) {
+        expect(parsed.error.issues[0]?.message).toMatch(/lower than lowpass/i);
+      }
+    });
+
+    it('rejects highpass frequency equal to lowpass frequency', () => {
+      const parsed = FilterSchema.safeParse({
+        highpassHz: 500,
+        lowpassHz: 500,
+      });
+      expect(parsed.success).toBe(false);
+    });
+
+    it('accepts independent highpass or lowpass frequencies', () => {
+      expect(FilterSchema.safeParse({ highpassHz: 80 }).success).toBe(true);
+      expect(FilterSchema.safeParse({ lowpassHz: 1200 }).success).toBe(true);
+      expect(FilterSchema.safeParse({}).success).toBe(true);
+    });
   });
 
   describe('SoundEventSchema', () => {

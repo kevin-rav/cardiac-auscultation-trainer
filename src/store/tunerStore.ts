@@ -116,7 +116,11 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       events: nextEvents,
     };
 
-    set({ soundSet: updatedSoundSet, validationError: null });
+    const validated = SoundSetSchema.safeParse(updatedSoundSet);
+    set({
+      soundSet: updatedSoundSet,
+      validationError: validated.success ? null : formatIssues(validated.error.issues),
+    });
 
     // Sync live audio player if current event is playing
     if (index === get().selectedEventIndex) {

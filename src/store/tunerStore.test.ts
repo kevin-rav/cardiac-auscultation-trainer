@@ -97,6 +97,16 @@ describe('TunerStore', () => {
     }
   });
 
+  it('flags validation error when filter has highpass cutoff greater than or equal to lowpass', () => {
+    const store = useTunerStore.getState();
+    store.setFilter({ highpassHz: 1200, lowpassHz: 200 });
+    expect(useTunerStore.getState().validationError).toMatch(/lower than lowpass/i);
+
+    // Resolves error when valid cutoffs are set
+    store.setFilter({ highpassHz: 80, lowpassHz: 1200 });
+    expect(useTunerStore.getState().validationError).toBeNull();
+  });
+
   it('toggles playback and calls preview player', () => {
     const store = useTunerStore.getState();
     expect(store.isPlaying).toBe(false);
@@ -151,6 +161,23 @@ describe('TunerStore', () => {
     const schemaSuccess = store.importJson(invalidSchemaJson);
     expect(schemaSuccess).toBe(false);
     expect(useTunerStore.getState().validationError).toBeTruthy();
+
+    const crossedCutoffsJson = JSON.stringify({
+      id: 'crossed-filters',
+      label: 'Crossed Filter Test',
+      events: [
+        {
+          kind: 'transient',
+          component: 'S1',
+          sample: 's1-apex',
+          at: { anchor: 'S1' },
+          filter: { highpassHz: 1500, lowpassHz: 500 },
+        },
+      ],
+    });
+    const crossedSuccess = store.importJson(crossedCutoffsJson);
+    expect(crossedSuccess).toBe(false);
+    expect(useTunerStore.getState().validationError).toMatch(/lower than lowpass/i);
   });
 
   it('marks playback stopped when a non-looping sound ends on its own', () => {
