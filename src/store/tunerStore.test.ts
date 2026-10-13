@@ -7,6 +7,8 @@ const stopFn = vi.fn();
 const setLoopFn = vi.fn();
 const generateSyntheticBufferFn = vi.fn();
 const loadAudioDataFn = vi.fn();
+const restoreCustomBufferFn = vi.fn();
+const setBufferFn = vi.fn();
 
 const mockPlayer = {
   play: (options?: PreviewOptions) => {
@@ -22,6 +24,8 @@ const mockPlayer = {
   setLoop: setLoopFn,
   generateSyntheticBuffer: generateSyntheticBufferFn,
   loadAudioData: loadAudioDataFn,
+  restoreCustomBuffer: restoreCustomBufferFn,
+  setBuffer: setBufferFn,
 } as unknown as AudioPreviewPlayer;
 
 const initialState = useTunerStore.getState();
@@ -219,6 +223,39 @@ describe('TunerStore', () => {
     expect(state.signalSource).toBe('custom');
     expect(state.customFileName).toBe('s1.wav');
     expect(state.audioError).toBeNull();
+  });
+
+  it('does not play and stops if custom source selected without an uploaded file', () => {
+    const store = useTunerStore.getState();
+    store.play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    store.setSignalSource('custom');
+    expect(useTunerStore.getState().signalSource).toBe('custom');
+    expect(useTunerStore.getState().isPlaying).toBe(false);
+    expect(stopFn).toHaveBeenCalled();
+    expect(restoreCustomBufferFn).toHaveBeenCalled();
+
+    playFn.mockClear();
+    store.play();
+    expect(playFn).not.toHaveBeenCalled();
+    expect(useTunerStore.getState().isPlaying).toBe(false);
+  });
+
+  it('restores custom buffer and resumes playback if custom file was loaded', async () => {
+    await useTunerStore.getState().loadCustomAudio('s1.wav', new ArrayBuffer(8));
+    const store = useTunerStore.getState();
+    store.play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    store.setSignalSource('click');
+    expect(generateSyntheticBufferFn).toHaveBeenCalledWith('click');
+
+    restoreCustomBufferFn.mockClear();
+    playFn.mockClear();
+    store.setSignalSource('custom');
+    expect(restoreCustomBufferFn).toHaveBeenCalled();
+    expect(playFn).toHaveBeenCalled();
   });
 
   it('reports an error and keeps the current source when decoding fails', async () => {

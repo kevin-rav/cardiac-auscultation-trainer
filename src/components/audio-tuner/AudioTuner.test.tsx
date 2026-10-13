@@ -14,6 +14,8 @@ const mockPlayer = {
   setLoop: vi.fn(),
   generateSyntheticBuffer: vi.fn(),
   loadAudioData: vi.fn().mockResolvedValue({}),
+  restoreCustomBuffer: vi.fn(),
+  setBuffer: vi.fn(),
 } as unknown as AudioPreviewPlayer;
 
 const initialState = useTunerStore.getState();
@@ -53,6 +55,17 @@ describe('AudioTuner UI Component', () => {
 
     fireEvent.click(playBtn);
     expect(playBtn.textContent).toMatch(/Play Preview/i);
+  });
+
+  it('disables play preview button when custom source is selected without uploaded file', () => {
+    render(<AudioTuner />);
+    const playBtn = screen.getByTestId('play-btn');
+    expect((playBtn as HTMLButtonElement).disabled).toBe(false);
+
+    const customRadio = screen.getByLabelText(/Custom Audio File/i);
+    fireEvent.click(customRadio);
+
+    expect((playBtn as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('adds and removes events via UI', () => {

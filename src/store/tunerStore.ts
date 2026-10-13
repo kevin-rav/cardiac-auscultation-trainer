@@ -256,6 +256,19 @@ export const useTunerStore = create<TunerState>((set, get) => ({
       if (get().isPlaying) {
         get().play();
       }
+    } else {
+      if (typeof player.restoreCustomBuffer === 'function') {
+        player.restoreCustomBuffer();
+      } else if (typeof player.setBuffer === 'function') {
+        player.setBuffer(null);
+      }
+      if (!get().customFileName) {
+        if (get().isPlaying) {
+          get().stop();
+        }
+      } else if (get().isPlaying) {
+        get().play();
+      }
     }
   },
 
@@ -279,12 +292,18 @@ export const useTunerStore = create<TunerState>((set, get) => ({
   },
 
   play: () => {
-    const { soundSet, selectedEventIndex, loop, signalSource } = get();
+    const { soundSet, selectedEventIndex, loop, signalSource, customFileName } = get();
+    if (signalSource === 'custom' && !customFileName) {
+      return;
+    }
+
     const current = soundSet.events[selectedEventIndex];
     const player = getPlayer();
 
     if (signalSource !== 'custom') {
       player.generateSyntheticBuffer(signalSource);
+    } else if (typeof player.restoreCustomBuffer === 'function') {
+      player.restoreCustomBuffer();
     }
 
     const playbackRate = current?.kind === 'transient' ? current.playbackRate : 1;

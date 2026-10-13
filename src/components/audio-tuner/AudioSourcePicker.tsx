@@ -109,6 +109,7 @@ export function AudioSourcePicker() {
             variant={isPlaying ? 'destructive' : 'default'}
             onClick={togglePlay}
             data-testid="play-btn"
+            disabled={signalSource === 'custom' && !customFileName}
           >
             {isPlaying ? '■ Stop' : '▶ Play Preview'}
           </Button>
