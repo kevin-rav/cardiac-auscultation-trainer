@@ -2,6 +2,7 @@ import type { Manifest } from '../engine/schema';
 
 export class SampleLoader {
   private readonly bufferCache = new Map<string, AudioBuffer>();
+  private readonly inFlightLoads = new Map<string, Promise<AudioBuffer | null>>();
   private readonly audioContext: AudioContext;
 
   public constructor(audioContext: AudioContext) {
@@ -17,20 +18,32 @@ export class SampleLoader {
       return cached;
     }
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error(`Failed to load audio sample ${id} from ${url}: ${response.statusText}`);
-        return null;
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-      this.bufferCache.set(id, decodedBuffer);
-      return decodedBuffer;
-    } catch (err) {
-      console.error(`Error decoding audio sample ${id} from ${url}:`, err);
-      return null;
+    const inFlight = this.inFlightLoads.get(id);
+    if (inFlight) {
+      return inFlight;
     }
+
+    const loadPromise = (async () => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(`Failed to load audio sample ${id} from ${url}: ${response.statusText}`);
+          return null;
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const decodedBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        this.bufferCache.set(id, decodedBuffer);
+        return decodedBuffer;
+      } catch (err) {
+        console.error(`Error decoding audio sample ${id} from ${url}:`, err);
+        return null;
+      } finally {
+        this.inFlightLoads.delete(id);
+      }
+    })();
+
+    this.inFlightLoads.set(id, loadPromise);
+    return loadPromise;
   }
 
   /**
@@ -63,5 +76,6 @@ export class SampleLoader {
    */
   public clear(): void {
     this.bufferCache.clear();
+    this.inFlightLoads.clear();
   }
 }

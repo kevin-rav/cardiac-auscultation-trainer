@@ -14,6 +14,7 @@ const DEFAULT_SYSTOLE_INTERCEPT_MS = 546;
 const DEFAULT_SYSTOLE_SLOPE = 2.1;
 const DEFAULT_MIN_SYSTOLE_MS = 200;
 const DEFAULT_MAX_SYSTOLE_MS = 450;
+const MIN_SYSTOLE_MARGIN_MS = 50;
 
 /**
  * Calculates electromechanical systole duration (approximate S1-to-S2 interval)
@@ -39,7 +40,10 @@ export function calculateLandmarks(
   params?: CycleParams['systole'],
 ): CycleLandmarks {
   const systoleMs = calculateSystoleMs(bpm, params);
-  const clampedSystole = Math.min(systoleMs, Math.max(50, rrMs - 50));
+  const clampedSystole = Math.min(
+    systoleMs,
+    Math.max(MIN_SYSTOLE_MARGIN_MS, rrMs - MIN_SYSTOLE_MARGIN_MS),
+  );
   const diastoleMs = Math.max(0, rrMs - clampedSystole);
 
   return {

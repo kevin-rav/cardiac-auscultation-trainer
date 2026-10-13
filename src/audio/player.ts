@@ -1,6 +1,13 @@
 import { createBeatGenerator, type Beat, type BeatGenerator } from '../engine/beats';
 import { resolveSoundSet } from '../engine/resolve';
-import type { Location, Manifest, Rhythm, SoundSet } from '../engine/schema';
+import {
+  MIN_FILTER_HIGHPASS_HZ,
+  MAX_FILTER_LOWPASS_HZ,
+  type Location,
+  type Manifest,
+  type Rhythm,
+  type SoundSet,
+} from '../engine/schema';
 import { scheduleEvents, type ScheduledEvent } from '../engine/scheduler';
 import { getAudioContext, resumeAudioContext } from './context';
 import { AudioGraph } from './graph';
@@ -183,6 +190,11 @@ export class CardiacAudioPlayer {
     const lookaheadSec = 0.1; // 100 ms lookahead window
     const windowEndSec = ctx.currentTime + lookaheadSec;
 
+    // Guard against backgrounding / main-thread lag scheduling expired past events
+    if (this.nextScheduleTimeSec < ctx.currentTime) {
+      this.nextScheduleTimeSec = ctx.currentTime;
+    }
+
     // Pull beats from generator until we reach windowEndSec
     let lastBeat = this.beatBuffer[this.beatBuffer.length - 1];
     while (!lastBeat || lastBeat.start < windowEndSec) {
@@ -234,7 +246,10 @@ export class CardiacAudioPlayer {
     let highpass: BiquadFilterNode | undefined;
     let lowpass: BiquadFilterNode | undefined;
 
-    if (event.filter?.highpassHz !== undefined && event.filter.highpassHz > 20) {
+    if (
+      event.filter?.highpassHz !== undefined &&
+      event.filter.highpassHz > MIN_FILTER_HIGHPASS_HZ
+    ) {
       highpass = ctx.createBiquadFilter();
       highpass.type = 'highpass';
       highpass.frequency.value = event.filter.highpassHz;
@@ -242,7 +257,7 @@ export class CardiacAudioPlayer {
       currentOutNode = highpass;
     }
 
-    if (event.filter?.lowpassHz !== undefined && event.filter.lowpassHz < 20000) {
+    if (event.filter?.lowpassHz !== undefined && event.filter.lowpassHz < MAX_FILTER_LOWPASS_HZ) {
       lowpass = ctx.createBiquadFilter();
       lowpass.type = 'lowpass';
       lowpass.frequency.value = event.filter.lowpassHz;
@@ -254,13 +269,11 @@ export class CardiacAudioPlayer {
     voiceGain.connect(this.audioGraph.masterGainNode);
 
     if (event.envelope) {
-      // Sustained murmur voice shaped by curve
+      // Sustained murmur voice shaped by curve (pre-scaled by event.gain)
       source.loop = true;
       voiceGain.gain.setValueAtTime(0, event.time);
       const durationSec = event.envelope.durationMs / 1000;
       voiceGain.gain.setValueCurveAtTime(event.envelope.curve, event.time, durationSec);
-      // Scale curve by event overall gain
-      voiceGain.gain.setValueAtTime(event.gain, event.time);
 
       source.start(event.time);
       source.stop(event.time + durationSec + 0.02);

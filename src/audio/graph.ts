@@ -25,7 +25,8 @@ export class AudioGraph {
    */
   public setVolume(volume: number, atTime?: number): void {
     const now = atTime ?? this.audioContext.currentTime;
-    const clampedVolume = Math.max(0, Math.min(2, volume));
+    const safeVolume = Number.isFinite(volume) ? volume : 1;
+    const clampedVolume = Math.max(0, Math.min(2, safeVolume));
 
     this.masterGainNode.gain.cancelScheduledValues(now);
     this.masterGainNode.gain.setValueAtTime(this.masterGainNode.gain.value, now);

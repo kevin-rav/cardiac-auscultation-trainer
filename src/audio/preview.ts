@@ -1,3 +1,6 @@
+import { getAudioContext, resumeAudioContext } from './context';
+import { SampleLoader } from './loader';
+
 /**
  * Infrasonic frequency (well below the human 20 Hz threshold) used to effectively
  * bypass the highpass biquad filter without graph rewiring.
@@ -21,6 +24,7 @@ export interface PreviewOptions {
 
 export class AudioPreviewPlayer {
   private audioContext: AudioContext | null = null;
+  private sampleLoader: SampleLoader | null = null;
   private highpassFilterNode: BiquadFilterNode | null = null;
   private lowpassFilterNode: BiquadFilterNode | null = null;
   private masterGainNode: GainNode | null = null;
@@ -36,16 +40,24 @@ export class AudioPreviewPlayer {
   private playbackSpeedRate = 1;
   private highpassCutoffHz: number | undefined;
   private lowpassCutoffHz: number | undefined;
-  private sampleCache = new Map<string, AudioBuffer>();
-  private activeLoadingUrl: string | null = null;
+
+  public constructor(ctx?: AudioContext) {
+    if (ctx) {
+      this.audioContext = ctx;
+      this.sampleLoader = new SampleLoader(ctx);
+    }
+  }
 
   /**
    * Lazily initializes and resumes the Web Audio AudioContext on user interaction.
    */
   private getOrCreateAudioContext(): AudioContext {
-    this.audioContext ??= new AudioContext();
+    if (!this.audioContext) {
+      this.audioContext = getAudioContext();
+      this.sampleLoader = new SampleLoader(this.audioContext);
+    }
     if (this.audioContext.state === 'suspended') {
-      void this.audioContext.resume();
+      void resumeAudioContext(this.audioContext);
     }
     return this.audioContext;
   }
@@ -101,31 +113,14 @@ export class AudioPreviewPlayer {
   }
 
   public async loadSampleUrl(sampleAudioUrl: string): Promise<AudioBuffer | null> {
-    const cachedBuffer = this.sampleCache.get(sampleAudioUrl);
-    if (cachedBuffer) {
-      this.loadedAudioBuffer = cachedBuffer;
-      return cachedBuffer;
-    }
+    const ctx = this.getOrCreateAudioContext();
+    this.sampleLoader ??= new SampleLoader(ctx);
 
-    this.activeLoadingUrl = sampleAudioUrl;
-    try {
-      const response = await fetch(sampleAudioUrl);
-      if (!response.ok) {
-        console.error(`Failed to load audio sample from ${sampleAudioUrl}: ${response.statusText}`);
-        return null;
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const decodedBuffer = await this.loadAudioData(arrayBuffer);
-      this.sampleCache.set(sampleAudioUrl, decodedBuffer);
-
-      if (this.activeLoadingUrl === sampleAudioUrl) {
-        this.loadedAudioBuffer = decodedBuffer;
-      }
-      return decodedBuffer;
-    } catch (err) {
-      console.error(`Error loading sample ${sampleAudioUrl}:`, err);
-      return null;
+    const decodedBuffer = await this.sampleLoader.loadSample(sampleAudioUrl, sampleAudioUrl);
+    if (decodedBuffer) {
+      this.loadedAudioBuffer = decodedBuffer;
     }
+    return decodedBuffer;
   }
 
   public setBuffer(buffer: AudioBuffer | null): void {
@@ -240,6 +235,11 @@ export class AudioPreviewPlayer {
     this.activeSourceNodes.add(sourceNode);
     sourceNode.onended = () => {
       this.activeSourceNodes.delete(sourceNode);
+      try {
+        sourceNode.disconnect();
+      } catch {
+        // Node may already be disconnected
+      }
       if (!this.isLoopingEnabled && this.activeSourceNodes.size === 0) {
         this.isCurrentlyPlaying = false;
       }
@@ -357,6 +357,10 @@ export class AudioPreviewPlayer {
     if (this.highpassFilterNode) {
       this.highpassFilterNode.disconnect();
       this.highpassFilterNode = null;
+    }
+    if (this.sampleLoader) {
+      this.sampleLoader.clear();
+      this.sampleLoader = null;
     }
     if (this.audioContext) {
       void this.audioContext.close();

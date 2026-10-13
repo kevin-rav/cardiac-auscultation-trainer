@@ -34,9 +34,14 @@ export const ComponentSchema = z.enum([
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
 
+export const MIN_FILTER_HIGHPASS_HZ = 20;
+export const MAX_FILTER_HIGHPASS_HZ = 2000;
+export const MIN_FILTER_LOWPASS_HZ = 200;
+export const MAX_FILTER_LOWPASS_HZ = 20000;
+
 export const FilterSchema = z.object({
-  highpassHz: z.number().min(20).max(2000).optional(),
-  lowpassHz: z.number().min(200).max(20000).optional(),
+  highpassHz: z.number().min(MIN_FILTER_HIGHPASS_HZ).max(MAX_FILTER_HIGHPASS_HZ).optional(),
+  lowpassHz: z.number().min(MIN_FILTER_LOWPASS_HZ).max(MAX_FILTER_LOWPASS_HZ).optional(),
 });
 export type Filter = z.infer<typeof FilterSchema>;
 

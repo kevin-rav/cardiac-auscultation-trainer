@@ -77,6 +77,14 @@ export function scheduleEvents(
 
         if (eventTimeSec >= fromSec && eventTimeSec < toSec) {
           const curve = generateMurmurCurve(event.shape, durationMs, event.edgeMs);
+          if (event.gain !== 1) {
+            for (let c = 0; c < curve.length; c++) {
+              const val = curve[c];
+              if (val !== undefined) {
+                curve[c] = val * event.gain;
+              }
+            }
+          }
 
           scheduled.push({
             id: `beat-${beat.index.toString()}-ev-${i.toString()}-${event.component}`,

@@ -45,7 +45,8 @@ export function generateMurmurCurve(
         shapeFactor = 1 - fraction;
         break;
       case 'diamond':
-        shapeFactor = fraction < 0.5 ? fraction * 2 : (1 - fraction) * 2;
+        // Half-sine window for smooth crescendo-decrescendo contour
+        shapeFactor = Math.sin(fraction * Math.PI);
         break;
     }
 

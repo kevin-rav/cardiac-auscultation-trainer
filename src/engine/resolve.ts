@@ -65,6 +65,11 @@ function mergeFilters(...filters: readonly (Filter | undefined)[]): Filter | und
     return undefined;
   }
 
+  // Prevent inverted filter passband (highpass higher than lowpass)
+  if (highpassHz !== undefined && lowpassHz !== undefined && highpassHz > lowpassHz) {
+    lowpassHz = highpassHz;
+  }
+
   return {
     ...(highpassHz !== undefined ? { highpassHz } : {}),
     ...(lowpassHz !== undefined ? { lowpassHz } : {}),
