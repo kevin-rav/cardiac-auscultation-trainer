@@ -9,6 +9,10 @@ const generateSyntheticBufferFn = vi.fn();
 const loadAudioDataFn = vi.fn();
 const restoreCustomBufferFn = vi.fn();
 const setBufferFn = vi.fn();
+const setGainFn = vi.fn();
+const setPlaybackRateFn = vi.fn();
+const setHighpassFn = vi.fn();
+const setLowpassFn = vi.fn();
 
 const mockPlayer = {
   play: (options?: PreviewOptions) => {
@@ -17,10 +21,10 @@ const mockPlayer = {
   stop: () => {
     stopFn();
   },
-  setGain: vi.fn(),
-  setPlaybackRate: vi.fn(),
-  setHighpass: vi.fn(),
-  setLowpass: vi.fn(),
+  setGain: setGainFn,
+  setPlaybackRate: setPlaybackRateFn,
+  setHighpass: setHighpassFn,
+  setLowpass: setLowpassFn,
   setLoop: setLoopFn,
   generateSyntheticBuffer: generateSyntheticBufferFn,
   loadAudioData: loadAudioDataFn,
@@ -53,6 +57,49 @@ describe('TunerStore', () => {
     // Out of bounds should not change index
     store.selectEvent(99);
     expect(useTunerStore.getState().selectedEventIndex).toBe(1);
+  });
+
+  it('applies selected event gain, playback rate, and filters during active playback', () => {
+    const store = useTunerStore.getState();
+    store.play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    setGainFn.mockClear();
+    setPlaybackRateFn.mockClear();
+    setHighpassFn.mockClear();
+    setLowpassFn.mockClear();
+
+    // Default S2 has gain: 0.9, playbackRate: 1, highpassHz: 100, lowpassHz: 1500
+    store.selectEvent(1);
+    expect(useTunerStore.getState().selectedEventIndex).toBe(1);
+
+    expect(setGainFn).toHaveBeenCalledWith(0.9);
+    expect(setPlaybackRateFn).toHaveBeenCalledWith(1);
+    expect(setHighpassFn).toHaveBeenCalledWith(100);
+    expect(setLowpassFn).toHaveBeenCalledWith(1500);
+  });
+
+  it('does not update player during event selection when audio is not playing', () => {
+    const store = useTunerStore.getState();
+    expect(store.isPlaying).toBe(false);
+
+    setGainFn.mockClear();
+    store.selectEvent(1);
+    expect(useTunerStore.getState().selectedEventIndex).toBe(1);
+    expect(setGainFn).not.toHaveBeenCalled();
+  });
+
+  it('syncs player parameters when adding or removing events during playback', () => {
+    const store = useTunerStore.getState();
+    store.play();
+
+    setGainFn.mockClear();
+    store.addEvent('murmur');
+    expect(setGainFn).toHaveBeenCalledWith(0.8);
+
+    setGainFn.mockClear();
+    store.removeEvent(useTunerStore.getState().selectedEventIndex);
+    expect(setGainFn).toHaveBeenCalled();
   });
 
   it('adds transient and murmur events', () => {
