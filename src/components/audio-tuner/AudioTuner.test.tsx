@@ -15,7 +15,11 @@ const mockPlayer = {
   setBpm: vi.fn(),
   loadSampleUrl: vi.fn().mockResolvedValue({}),
   loadAudioData: vi.fn().mockResolvedValue({}),
+  restoreCustomBuffer: vi.fn(),
+  setBuffer: vi.fn(),
 } as unknown as AudioPreviewPlayer;
+
+const initialState = useTunerStore.getState();
 
 const mockCardiacPlayer = {
   play: vi.fn().mockResolvedValue(undefined),
@@ -28,6 +32,7 @@ const mockCardiacPlayer = {
 
 describe('AudioTuner UI Component', () => {
   beforeEach(() => {
+    useTunerStore.setState(initialState, true);
     setPreviewPlayerInstance(mockPlayer);
     setCardiacPlayerInstance(mockCardiacPlayer);
     useTunerStore.setState({ isPlaying: false });
@@ -64,6 +69,19 @@ describe('AudioTuner UI Component', () => {
     expect(playBtn.textContent).toMatch(/Play/i);
   });
 
+  it('disables play preview button when custom source is selected without uploaded file', () => {
+    render(<AudioTuner />);
+    const playBtn = screen.getByTestId('play-btn');
+    expect((playBtn as HTMLButtonElement).disabled).toBe(false);
+
+    // Switch to isolated mode and select custom audio source
+    fireEvent.click(screen.getByTestId('mode-isolated'));
+    const sourceSelect = screen.getByLabelText(/Audio Sample Source/i);
+    fireEvent.change(sourceSelect, { target: { value: 'custom' } });
+
+    expect((playBtn as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('adds and removes events via UI', () => {
     render(<AudioTuner />);
     const addMurmurBtn = screen.getByRole('button', { name: /\+ Add Murmur/i });
@@ -75,6 +93,22 @@ describe('AudioTuner UI Component', () => {
     fireEvent.click(deleteBtn);
 
     expect(useTunerStore.getState().soundSet.events.length).toBe(2);
+  });
+
+  it('disables filter presets that would cross the opposing cutoff', () => {
+    // S1 default: highpass 80 Hz, lowpass 1200 Hz
+    render(<AudioTuner />);
+
+    // 500 Hz exists in both HP and LP presets (HP is first, LP is second)
+    const buttons500 = screen.getAllByRole('button', { name: '500 Hz' });
+    const hp500Btn = buttons500[0] as HTMLButtonElement;
+    const lp500Btn = buttons500[1] as HTMLButtonElement;
+
+    fireEvent.click(lp500Btn);
+    expect(useTunerStore.getState().soundSet.events[0]?.filter?.lowpassHz).toBe(500);
+
+    // HP preset 500 Hz should now be disabled since lowpass is 500 Hz (highpass must be < lowpass)
+    expect(hp500Btn.disabled).toBe(true);
   });
 
   it('imports valid and invalid JSON through the import panel', () => {

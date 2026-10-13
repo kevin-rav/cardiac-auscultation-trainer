@@ -39,10 +39,18 @@ export const MAX_FILTER_HIGHPASS_HZ = 2000;
 export const MIN_FILTER_LOWPASS_HZ = 200;
 export const MAX_FILTER_LOWPASS_HZ = 20000;
 
-export const FilterSchema = z.object({
-  highpassHz: z.number().min(MIN_FILTER_HIGHPASS_HZ).max(MAX_FILTER_HIGHPASS_HZ).optional(),
-  lowpassHz: z.number().min(MIN_FILTER_LOWPASS_HZ).max(MAX_FILTER_LOWPASS_HZ).optional(),
-});
+export const FilterSchema = z
+  .object({
+    highpassHz: z.number().min(MIN_FILTER_HIGHPASS_HZ).max(MAX_FILTER_HIGHPASS_HZ).optional(),
+    lowpassHz: z.number().min(MIN_FILTER_LOWPASS_HZ).max(MAX_FILTER_LOWPASS_HZ).optional(),
+  })
+  .refine(
+    (f) => f.highpassHz === undefined || f.lowpassHz === undefined || f.highpassHz < f.lowpassHz,
+    {
+      message: 'highpass cutoff must be lower than lowpass cutoff',
+      path: ['highpassHz'],
+    },
+  );
 export type Filter = z.infer<typeof FilterSchema>;
 
 export const TransientSchema = z.object({

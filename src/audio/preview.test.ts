@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AudioPreviewPlayer } from './preview';
-import { MockAudioContext } from './test-mocks';
+import { MockAudioContext, MockAudioBufferSourceNode } from './test-mocks';
 
 describe('AudioPreviewPlayer', () => {
   let player: AudioPreviewPlayer;
@@ -91,9 +91,49 @@ describe('AudioPreviewPlayer', () => {
     expect(player.getBuffer()).toBe(buffer);
   });
 
+  it('restores loaded custom audio buffer after synthetic sound is generated', async () => {
+    expect(player.restoreCustomBuffer()).toBe(false);
+
+    const fakeData = new ArrayBuffer(64);
+    const buffer = await player.loadAudioData(fakeData);
+    expect(player.getBuffer()).toBe(buffer);
+
+    player.generateSyntheticBuffer('click');
+    expect(player.getBuffer()).not.toBe(buffer);
+
+    expect(player.restoreCustomBuffer()).toBe(true);
+    expect(player.getBuffer()).toBe(buffer);
+  });
+
   it('disposes player and closes context', () => {
     player.play();
     player.dispose();
     expect(player.getIsPlaying()).toBe(false);
+  });
+
+  it('calls onEnded when a non-looping sound finishes on its own', () => {
+    const onEnded = vi.fn();
+    const createSource = vi.spyOn(MockAudioContext.prototype, 'createBufferSource');
+    player.play({ loop: false, onEnded });
+    const source = createSource.mock.results[0]?.value as MockAudioBufferSourceNode;
+
+    source.onended?.();
+    expect(onEnded).toHaveBeenCalledOnce();
+    expect(player.getIsPlaying()).toBe(false);
+  });
+
+  it('does not call onEnded for a looping sound or after stop()', () => {
+    const onEnded = vi.fn();
+    const createSource = vi.spyOn(MockAudioContext.prototype, 'createBufferSource');
+
+    player.play({ loop: true, onEnded });
+    const looping = createSource.mock.results[0]?.value as MockAudioBufferSourceNode;
+    looping.onended?.();
+    expect(player.getIsPlaying()).toBe(true);
+
+    player.setLoop(false);
+    player.stop();
+    looping.onended?.();
+    expect(onEnded).not.toHaveBeenCalled();
   });
 });

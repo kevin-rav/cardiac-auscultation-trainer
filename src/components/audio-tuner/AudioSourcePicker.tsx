@@ -22,6 +22,7 @@ export function AudioSourcePicker() {
   const loadPreset = useTunerStore((s) => s.loadPreset);
   const signalSource = useTunerStore((s) => s.signalSource);
   const customFileName = useTunerStore((s) => s.customFileName);
+  const audioError = useTunerStore((s) => s.audioError);
   const isPlaying = useTunerStore((s) => s.isPlaying);
   const loop = useTunerStore((s) => s.loop);
   const bpm = useTunerStore((s) => s.bpm);
@@ -175,6 +176,11 @@ export function AudioSourcePicker() {
               onChange={handleFileUpload}
               className="text-xs text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
             />
+            {audioError && (
+              <p className="text-xs text-destructive" role="alert" data-testid="audio-error">
+                {audioError}
+              </p>
+            )}
             {customFileName && (
               <p className="text-xs text-muted-foreground">
                 Loaded: <span className="font-semibold text-foreground">{customFileName}</span>
@@ -190,6 +196,9 @@ export function AudioSourcePicker() {
               variant={isPlaying ? 'destructive' : 'default'}
               onClick={togglePlay}
               data-testid="play-btn"
+              disabled={
+                playbackMode === 'isolated' && signalSource === 'custom' && !customFileName
+              }
             >
               {isPlaying
                 ? '■ Stop'

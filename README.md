@@ -24,17 +24,18 @@ The dev server prints a local URL, usually `http://localhost:5173`.
 
 ## Scripts
 
-| Script                 | Purpose                                      |
-| ---------------------- | -------------------------------------------- |
-| `npm run dev`          | Start the Vite dev server with hot reload    |
-| `npm run build`        | Typecheck, then build a production bundle    |
-| `npm run preview`      | Serve the production bundle locally          |
-| `npm test`             | Run the test suite once                      |
-| `npm run test:watch`   | Run tests in watch mode                      |
-| `npm run typecheck`    | Run the TypeScript compiler without emitting |
-| `npm run lint`         | Lint with ESLint                             |
-| `npm run format`       | Rewrite files with Prettier                  |
-| `npm run format:check` | Fail if any file is not Prettier-formatted   |
+| Script                  | Purpose                                      |
+| ----------------------- | -------------------------------------------- |
+| `npm run dev`           | Start the Vite dev server with hot reload    |
+| `npm run build`         | Typecheck, then build a production bundle    |
+| `npm run preview`       | Serve the production bundle locally          |
+| `npm test`              | Run the test suite once                      |
+| `npm run test:watch`    | Run tests in watch mode                      |
+| `npm run test:coverage` | Run tests once and write a coverage report   |
+| `npm run typecheck`     | Run the TypeScript compiler without emitting |
+| `npm run lint`          | Lint with ESLint                             |
+| `npm run format`        | Rewrite files with Prettier                  |
+| `npm run format:check`  | Fail if any file is not Prettier-formatted   |
 
 ## Stack
 

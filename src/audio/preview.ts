@@ -13,6 +13,8 @@ const HIGHPASS_BYPASS_FREQ_HZ = 10;
  */
 const LOWPASS_BYPASS_FREQ_HZ = 22000;
 
+export type TestSignalType = 'heart-beat' | 'click' | 'murmur-noise' | 'murmur';
+
 export interface PreviewOptions {
   highpassHz?: number | undefined;
   lowpassHz?: number | undefined;
@@ -20,6 +22,8 @@ export interface PreviewOptions {
   playbackRate?: number | undefined;
   loop?: boolean | undefined;
   bpm?: number | undefined;
+  /** Called when a non-looping sound finishes on its own, not when stop() is called. */
+  onEnded?: (() => void) | undefined;
 }
 
 export class AudioPreviewPlayer {
@@ -33,6 +37,7 @@ export class AudioPreviewPlayer {
   private nextBeatAudioTimeSec = 0;
 
   private loadedAudioBuffer: AudioBuffer | null = null;
+  private customAudioBuffer: AudioBuffer | null = null;
   private isCurrentlyPlaying = false;
   private isLoopingEnabled = false;
   private beatsPerMinute = 72;
@@ -40,6 +45,7 @@ export class AudioPreviewPlayer {
   private playbackSpeedRate = 1;
   private highpassCutoffHz: number | undefined;
   private lowpassCutoffHz: number | undefined;
+  private onEndedCallback: (() => void) | undefined;
 
   public constructor(ctx?: AudioContext) {
     if (ctx) {
@@ -108,8 +114,14 @@ export class AudioPreviewPlayer {
   public async loadAudioData(audioFileArrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
     const ctx = this.getOrCreateAudioContext();
     const decodedBuffer = await ctx.decodeAudioData(audioFileArrayBuffer);
+    this.customAudioBuffer = decodedBuffer;
     this.loadedAudioBuffer = decodedBuffer;
     return decodedBuffer;
+  }
+
+  public restoreCustomBuffer(): boolean {
+    this.loadedAudioBuffer = this.customAudioBuffer;
+    return this.loadedAudioBuffer !== null;
   }
 
   public async loadSampleUrl(sampleAudioUrl: string): Promise<AudioBuffer | null> {
@@ -132,6 +144,59 @@ export class AudioPreviewPlayer {
 
   public getBuffer(): AudioBuffer | null {
     return this.loadedAudioBuffer;
+  }
+
+  public generateSyntheticBuffer(type: TestSignalType): AudioBuffer {
+    const ctx = this.getOrCreateAudioContext();
+    const sampleRate = ctx.sampleRate;
+
+    if (type === 'heart-beat') {
+      const duration = 0.15;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const freq = 60;
+      for (let i = 0; i < length; i++) {
+        const t = i / sampleRate;
+        const envelope = Math.exp(-t * 28);
+        data[i] = Math.sin(2 * Math.PI * freq * t) * envelope * 0.8;
+      }
+      this.loadedAudioBuffer = buffer;
+      return buffer;
+    }
+
+    if (type === 'click') {
+      const duration = 0.05;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const freq = 1200;
+      for (let i = 0; i < length; i++) {
+        const t = i / sampleRate;
+        const envelope = Math.exp(-t * 80);
+        data[i] = Math.sin(2 * Math.PI * freq * t) * envelope * 0.6;
+      }
+      this.loadedAudioBuffer = buffer;
+      return buffer;
+    }
+
+    const duration = 0.6;
+    const length = Math.floor(sampleRate * duration);
+    const buffer = ctx.createBuffer(1, length, sampleRate);
+    const data = buffer.getChannelData(0);
+    let b0 = 0;
+    let b1 = 0;
+    let b2 = 0;
+    for (let i = 0; i < length; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.969 * b2 + white * 0.153852;
+      const pink = b0 + b1 + b2 + white * 0.5362;
+      data[i] = pink * 0.15;
+    }
+    this.loadedAudioBuffer = buffer;
+    return buffer;
   }
 
   public setHighpass(frequencyHz?: number): void {
@@ -245,6 +310,7 @@ export class AudioPreviewPlayer {
       }
       if (!this.isLoopingEnabled && this.activeSourceNodes.size === 0) {
         this.isCurrentlyPlaying = false;
+        this.onEndedCallback?.();
       }
     };
 
@@ -292,6 +358,7 @@ export class AudioPreviewPlayer {
       if (previewOptions.lowpassHz !== undefined) {
         this.lowpassCutoffHz = previewOptions.lowpassHz;
       }
+      this.onEndedCallback = previewOptions.onEnded;
     }
 
     this.getOrCreateAudioGraph();
@@ -313,6 +380,7 @@ export class AudioPreviewPlayer {
   }
 
   public stop(): void {
+    this.onEndedCallback = undefined;
     if (this.schedulerIntervalId) {
       clearInterval(this.schedulerIntervalId);
       this.schedulerIntervalId = null;

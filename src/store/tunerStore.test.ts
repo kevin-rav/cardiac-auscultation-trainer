@@ -1,28 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTunerStore, setPreviewPlayerInstance, setCardiacPlayerInstance } from './tunerStore';
-import type { AudioPreviewPlayer, CardiacAudioPlayer } from '../audio';
+import type { AudioPreviewPlayer, CardiacAudioPlayer, PreviewOptions } from '../audio';
 
 const playFn = vi.fn();
 const stopFn = vi.fn();
+const setLoopFn = vi.fn();
 const setBpmFn = vi.fn();
+const generateSyntheticBufferFn = vi.fn();
+const loadAudioDataFn = vi.fn();
+const restoreCustomBufferFn = vi.fn();
+const setBufferFn = vi.fn();
+const setGainFn = vi.fn();
+const setPlaybackRateFn = vi.fn();
+const setHighpassFn = vi.fn();
+const setLowpassFn = vi.fn();
 
 const mockPlayer = {
-  play: () => {
-    playFn();
+  play: (options?: PreviewOptions) => {
+    playFn(options);
   },
   stop: () => {
     stopFn();
   },
-  setGain: vi.fn(),
-  setPlaybackRate: vi.fn(),
-  setHighpass: vi.fn(),
-  setLowpass: vi.fn(),
-  setLoop: vi.fn(),
+  setGain: setGainFn,
+  setPlaybackRate: setPlaybackRateFn,
+  setHighpass: setHighpassFn,
+  setLowpass: setLowpassFn,
+  setLoop: setLoopFn,
   setBpm: (bpm: number) => {
     setBpmFn(bpm);
   },
+  generateSyntheticBuffer: generateSyntheticBufferFn,
   loadSampleUrl: vi.fn().mockResolvedValue({}),
-  loadAudioData: vi.fn().mockResolvedValue({}),
+  loadAudioData: loadAudioDataFn,
+  restoreCustomBuffer: restoreCustomBufferFn,
+  setBuffer: setBufferFn,
 } as unknown as AudioPreviewPlayer;
 
 const cardiacPlayFn = vi.fn();
@@ -48,12 +60,16 @@ const mockCardiacPlayer = {
   getSampleLoader: () => ({ preloadManifest: vi.fn().mockResolvedValue({}) }),
 } as unknown as CardiacAudioPlayer;
 
+const initialState = useTunerStore.getState();
+
 describe('TunerStore', () => {
   beforeEach(() => {
+    useTunerStore.setState(initialState, true);
     setPreviewPlayerInstance(mockPlayer);
     setCardiacPlayerInstance(mockCardiacPlayer);
     useTunerStore.setState({ playbackMode: 'full-cycle', isPlaying: false });
     vi.clearAllMocks();
+    loadAudioDataFn.mockResolvedValue({});
   });
 
   it('has initial default sound set with S1 and S2 events', () => {
@@ -71,6 +87,51 @@ describe('TunerStore', () => {
     // Out of bounds should not change index
     store.selectEvent(99);
     expect(useTunerStore.getState().selectedEventIndex).toBe(1);
+  });
+
+  it('applies selected event gain, playback rate, and filters during active playback', () => {
+    const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
+    store.play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    setGainFn.mockClear();
+    setPlaybackRateFn.mockClear();
+    setHighpassFn.mockClear();
+    setLowpassFn.mockClear();
+
+    // Default S2 has gain: 0.9, playbackRate: 1, highpassHz: 100, lowpassHz: 1500
+    store.selectEvent(1);
+    expect(useTunerStore.getState().selectedEventIndex).toBe(1);
+
+    expect(setGainFn).toHaveBeenCalledWith(0.9);
+    expect(setPlaybackRateFn).toHaveBeenCalledWith(1);
+    expect(setHighpassFn).toHaveBeenCalledWith(100);
+    expect(setLowpassFn).toHaveBeenCalledWith(1500);
+  });
+
+  it('does not update player during event selection when audio is not playing', () => {
+    const store = useTunerStore.getState();
+    expect(store.isPlaying).toBe(false);
+
+    setGainFn.mockClear();
+    store.selectEvent(1);
+    expect(useTunerStore.getState().selectedEventIndex).toBe(1);
+    expect(setGainFn).not.toHaveBeenCalled();
+  });
+
+  it('syncs player parameters when adding or removing events during playback', () => {
+    const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
+    store.play();
+
+    setGainFn.mockClear();
+    store.addEvent('murmur');
+    expect(setGainFn).toHaveBeenCalledWith(0.8);
+
+    setGainFn.mockClear();
+    store.removeEvent(useTunerStore.getState().selectedEventIndex);
+    expect(setGainFn).toHaveBeenCalled();
   });
 
   it('adds transient and murmur events', () => {
@@ -117,6 +178,21 @@ describe('TunerStore', () => {
     if (updated?.kind === 'transient') {
       expect(updated.playbackRate).toBe(1.3);
     }
+  });
+
+  it('flags validation error and blocks setting highpass cutoff greater than or equal to lowpass', () => {
+    const store = useTunerStore.getState();
+    const prevHp = store.soundSet.events[0]?.filter?.highpassHz;
+    const prevLp = store.soundSet.events[0]?.filter?.lowpassHz;
+
+    store.setFilter({ highpassHz: 1200, lowpassHz: 200 });
+    expect(useTunerStore.getState().validationError).toMatch(/lower than lowpass/i);
+    expect(useTunerStore.getState().soundSet.events[0]?.filter?.highpassHz).toBe(prevHp);
+    expect(useTunerStore.getState().soundSet.events[0]?.filter?.lowpassHz).toBe(prevLp);
+
+    // Resolves error when valid cutoffs are set
+    store.setFilter({ highpassHz: 80, lowpassHz: 1200 });
+    expect(useTunerStore.getState().validationError).toBeNull();
   });
 
   it('toggles playback and calls preview player', () => {
@@ -193,6 +269,127 @@ describe('TunerStore', () => {
     const schemaSuccess = store.importJson(invalidSchemaJson);
     expect(schemaSuccess).toBe(false);
     expect(useTunerStore.getState().validationError).toBeTruthy();
+
+    const crossedCutoffsJson = JSON.stringify({
+      id: 'crossed-filters',
+      label: 'Crossed Filter Test',
+      events: [
+        {
+          kind: 'transient',
+          component: 'S1',
+          sample: 's1-apex',
+          at: { anchor: 'S1' },
+          filter: { highpassHz: 1500, lowpassHz: 500 },
+        },
+      ],
+    });
+    const crossedSuccess = store.importJson(crossedCutoffsJson);
+    expect(crossedSuccess).toBe(false);
+    expect(useTunerStore.getState().validationError).toMatch(/lower than lowpass/i);
+  });
+
+  it('marks playback stopped when a non-looping sound ends on its own', () => {
+    const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
+    store.play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    const options = playFn.mock.lastCall?.[0] as PreviewOptions | undefined;
+    options?.onEnded?.();
+    expect(useTunerStore.getState().isPlaying).toBe(false);
+  });
+
+  it('passes loop changes to the player', () => {
+    useTunerStore.getState().setLoop(true);
+    expect(useTunerStore.getState().loop).toBe(true);
+    expect(setLoopFn).toHaveBeenCalledWith(true);
+  });
+
+  it('regenerates the buffer on signal source change and restarts playback if playing', () => {
+    const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
+    store.setSignalSource('click');
+    expect(generateSyntheticBufferFn).toHaveBeenCalledWith('click');
+    expect(playFn).not.toHaveBeenCalled();
+
+    store.play();
+    playFn.mockClear();
+    store.setSignalSource('murmur');
+    expect(useTunerStore.getState().signalSource).toBe('murmur');
+    expect(playFn).toHaveBeenCalledOnce();
+  });
+
+  it('switches to the custom source after decoding an uploaded file', async () => {
+    await useTunerStore.getState().loadCustomAudio('s1.wav', new ArrayBuffer(8));
+    const state = useTunerStore.getState();
+    expect(state.signalSource).toBe('custom');
+    expect(state.customFileName).toBe('s1.wav');
+    expect(state.audioError).toBeNull();
+  });
+
+  it('does not play and stops if custom source selected without an uploaded file', () => {
+    const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
+    store.play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    store.setSignalSource('custom');
+    expect(useTunerStore.getState().signalSource).toBe('custom');
+    expect(useTunerStore.getState().isPlaying).toBe(false);
+    expect(stopFn).toHaveBeenCalled();
+    expect(restoreCustomBufferFn).toHaveBeenCalled();
+
+    playFn.mockClear();
+    store.play();
+    expect(playFn).not.toHaveBeenCalled();
+    expect(useTunerStore.getState().isPlaying).toBe(false);
+  });
+
+  it('restores custom buffer and resumes playback if custom file was loaded', async () => {
+    await useTunerStore.getState().loadCustomAudio('s1.wav', new ArrayBuffer(8));
+    const store = useTunerStore.getState();
+    store.setPlaybackMode('isolated');
+    store.play();
+    expect(useTunerStore.getState().isPlaying).toBe(true);
+
+    store.setSignalSource('click');
+    expect(generateSyntheticBufferFn).toHaveBeenCalledWith('click');
+
+    restoreCustomBufferFn.mockClear();
+    playFn.mockClear();
+    store.setSignalSource('custom');
+    expect(restoreCustomBufferFn).toHaveBeenCalled();
+    expect(playFn).toHaveBeenCalled();
+  });
+
+  it('reports an error and keeps the current source when decoding fails', async () => {
+    loadAudioDataFn.mockRejectedValueOnce(new Error('Unable to decode'));
+    await useTunerStore.getState().loadCustomAudio('notes.txt', new ArrayBuffer(8));
+    const state = useTunerStore.getState();
+    expect(state.signalSource).toBe('event-sample');
+    expect(state.customFileName).toBeNull();
+    expect(state.audioError).toBe('Could not decode notes.txt: Unable to decode');
+  });
+
+  it('sanitizes the set id and keeps the old id when the field is cleared', () => {
+    const store = useTunerStore.getState();
+    store.updateSoundSetMetadata('Label', 'My Set_2');
+    expect(useTunerStore.getState().soundSet.id).toBe('my-set-2');
+
+    useTunerStore.getState().updateSoundSetMetadata('Label', '');
+    expect(useTunerStore.getState().soundSet.id).toBe('my-set-2');
+  });
+
+  it('flags an empty label because the export would not import back', () => {
+    const store = useTunerStore.getState();
+    store.updateSoundSetMetadata('', store.soundSet.id);
+    const state = useTunerStore.getState();
+    expect(state.soundSet.label).toBe('');
+    expect(state.validationError).toMatch(/^label:/);
+    expect(state.importJson(state.exportJson())).toBe(false);
+
+    useTunerStore.getState().updateSoundSetMetadata('Fixed', state.soundSet.id);
+    expect(useTunerStore.getState().validationError).toBeNull();
   });
 
   it('loads clinical preset sound sets correctly', () => {

@@ -1,0 +1,64 @@
+name: Bug report
+description: Report something that is broken or behaves incorrectly.
+title: '[Bug]: '
+labels: [bug]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One line describing the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Audio Tuner
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: |
+        Critical: blocks the demo or produces clinically wrong sounds.
+        Major: a feature does not work.
+        Minor: cosmetic, or has a workaround.
+      options:
+        - Critical
+        - Major
+        - Minor
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Audio Tuner
+        - Trainer (3D scene, controls)
+        - Audio engine
+        - CI / deploy
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: Chrome 140 on macOS
