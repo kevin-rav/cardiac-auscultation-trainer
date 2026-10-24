@@ -106,6 +106,35 @@
         </div>
       </aside>
 
+      <!-- Pin Drop Coordinates HUD -->
+      <div class="pin-drop-hud" id="pinDropHud" style="display: none" aria-live="polite">
+        <div class="pin-hud-header">
+          <div class="pin-hud-title-wrap">
+            <span class="pin-dot-indicator"></span>
+            <span class="pin-hud-title">Pinned Coordinates</span>
+          </div>
+          <button
+            class="pin-hud-clear"
+            id="btnPinClear"
+            title="Clear Pin"
+            aria-label="Clear dropped pin"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="pin-hud-body">
+          <div class="pin-hud-row">
+            <span class="pin-hud-label">Model [x, y, z]:</span>
+            <code class="pin-hud-coords" id="pinModelCoords">[0.000, 0.000, 0.000]</code>
+          </div>
+          <div class="pin-hud-row">
+            <span class="pin-hud-label">Surface Normal:</span>
+            <code class="pin-hud-coords-dim" id="pinNormalCoords">[0.000, 0.000, 1.000]</code>
+          </div>
+          <button class="pin-hud-copy" id="btnPinCopy">Copy Model Coordinates</button>
+        </div>
+      </div>
+
       <!-- Interactive Controls Dock (CON-XR Inspired) -->
       <nav class="controls-dock" aria-label="Viewer Controls">
         <div class="point-switcher-group">
@@ -128,6 +157,14 @@
         </div>
 
         <div class="utility-group">
+          <button
+            class="icon-btn active"
+            id="btnTogglePinDrop"
+            title="Toggle Pin Drop Mode (Click model to drop red pin)"
+            aria-label="Toggle Pin Drop"
+          >
+            📍
+          </button>
           <button
             class="icon-btn"
             id="btnResetCamera"
