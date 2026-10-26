@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import type { Quiz, YesNoQuestion } from '../engine/schema';
-import { quizzesRecord } from '../data';
+import { CardiacAudioPlayer } from '../audio';
+import type { Quiz, SoundSet, YesNoQuestion } from '../engine/schema';
+import { manifest, quizzesRecord, soundSetsRecord } from '../data';
 
 export interface QuizState {
   quiz: Quiz | null;
@@ -8,12 +9,17 @@ export interface QuizState {
   /** The learner's answer to the current question, or null before they answer. */
   selectedAnswer: boolean | null;
   isFinished: boolean;
+  isPlaying: boolean;
+  audioError: string | null;
 
   startQuiz: (id: string) => boolean;
   answer: (choice: boolean) => void;
   nextQuestion: () => void;
   restart: () => void;
   exitQuiz: () => void;
+  /** Play the current question's sound set on a loop until stopped. */
+  playSound: () => void;
+  stopSound: () => void;
 }
 
 export function getCurrentQuestion(state: QuizState): YesNoQuestion | null {
@@ -27,6 +33,20 @@ export function isAnswerCorrect(state: QuizState): boolean | null {
   return state.selectedAnswer === question.answer;
 }
 
+let quizPlayer: CardiacAudioPlayer | null = null;
+
+function getPlayer(soundSet: SoundSet): CardiacAudioPlayer {
+  if (!quizPlayer) {
+    quizPlayer = new CardiacAudioPlayer(soundSet, undefined, manifest);
+    void quizPlayer.getSampleLoader().preloadManifest(manifest);
+  }
+  return quizPlayer;
+}
+
+export function setQuizPlayerInstance(player: CardiacAudioPlayer | null): void {
+  quizPlayer = player;
+}
+
 const initialProgress = {
   questionIndex: 0,
   selectedAnswer: null,
@@ -36,10 +56,13 @@ const initialProgress = {
 export const useQuizStore = create<QuizState>((set, get) => ({
   quiz: null,
   ...initialProgress,
+  isPlaying: false,
+  audioError: null,
 
   startQuiz: (id) => {
     const quiz = quizzesRecord[id];
     if (!quiz) return false;
+    get().stopSound();
     set({ quiz, ...initialProgress });
     return true;
   },
@@ -55,6 +78,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const { quiz, questionIndex, selectedAnswer } = get();
     if (!quiz || selectedAnswer === null) return;
 
+    get().stopSound();
     const next = questionIndex + 1;
     if (next >= quiz.questions.length) {
       set({ isFinished: true });
@@ -65,10 +89,38 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   restart: () => {
     if (!get().quiz) return;
+    get().stopSound();
     set(initialProgress);
   },
 
   exitQuiz: () => {
+    get().stopSound();
     set({ quiz: null, ...initialProgress });
+  },
+
+  playSound: () => {
+    const question = getCurrentQuestion(get());
+    if (!question) return;
+
+    const soundSet = soundSetsRecord[question.sound.soundSet];
+    if (!soundSet) {
+      set({ audioError: `Unknown sound set "${question.sound.soundSet}"` });
+      return;
+    }
+
+    const player = getPlayer(soundSet);
+    player.stop();
+    player.setSoundSet(soundSet);
+    player.setBpm(question.sound.bpm);
+    player.setLoop(true);
+    set({ isPlaying: true, audioError: null });
+    player.play().catch((err: unknown) => {
+      set({ isPlaying: false, audioError: err instanceof Error ? err.message : String(err) });
+    });
+  },
+
+  stopSound: () => {
+    quizPlayer?.stop();
+    set({ isPlaying: false });
   },
 }));
