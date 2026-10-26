@@ -1,7 +1,27 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CardiacAudioPlayer } from '../audio';
 import type { Quiz } from '../engine/schema';
-import { PRESET_QUIZZES } from '../data';
-import { getCurrentQuestion, isAnswerCorrect, useQuizStore } from './quizStore';
+import { PRESET_QUIZZES, soundSetsRecord } from '../data';
+import {
+  getCurrentQuestion,
+  isAnswerCorrect,
+  setQuizPlayerInstance,
+  useQuizStore,
+} from './quizStore';
+
+const playFn = vi.fn<() => Promise<void>>();
+const stopFn = vi.fn();
+const setSoundSetFn = vi.fn();
+const setBpmFn = vi.fn();
+const setLoopFn = vi.fn();
+
+const mockPlayer = {
+  play: playFn,
+  stop: stopFn,
+  setSoundSet: setSoundSetFn,
+  setBpm: setBpmFn,
+  setLoop: setLoopFn,
+} as unknown as CardiacAudioPlayer;
 
 const fixtureQuiz: Quiz = {
   id: 'fixture',
@@ -33,6 +53,9 @@ function startFixture(): void {
 describe('QuizStore', () => {
   beforeEach(() => {
     useQuizStore.setState(initialState, true);
+    setQuizPlayerInstance(mockPlayer);
+    vi.clearAllMocks();
+    playFn.mockResolvedValue(undefined);
   });
 
   describe('startQuiz', () => {
@@ -132,6 +155,99 @@ describe('QuizStore', () => {
       const state = useQuizStore.getState();
       expect(state.quiz).toBeNull();
       expect(getCurrentQuestion(state)).toBeNull();
+    });
+  });
+
+  describe('playSound', () => {
+    it('plays the current question sound set at its bpm on a loop', () => {
+      startFixture();
+      useQuizStore.getState().playSound();
+
+      expect(setSoundSetFn).toHaveBeenCalledWith(soundSetsRecord['s3-gallop']);
+      expect(setBpmFn).toHaveBeenCalledWith(72);
+      expect(setLoopFn).toHaveBeenCalledWith(true);
+      expect(playFn).toHaveBeenCalledOnce();
+      expect(useQuizStore.getState().isPlaying).toBe(true);
+    });
+
+    it('stops the previous sound before playing again', () => {
+      startFixture();
+      useQuizStore.getState().playSound();
+      useQuizStore.getState().playSound();
+
+      expect(stopFn).toHaveBeenCalledTimes(2);
+      expect(stopFn.mock.invocationCallOrder[1]).toBeLessThan(
+        playFn.mock.invocationCallOrder[1] ?? 0,
+      );
+    });
+
+    it('plays the next question at its own sound set and bpm', () => {
+      startFixture();
+      useQuizStore.getState().answer(true);
+      useQuizStore.getState().nextQuestion();
+      useQuizStore.getState().playSound();
+
+      expect(setSoundSetFn).toHaveBeenLastCalledWith(soundSetsRecord['s4-gallop']);
+      expect(setBpmFn).toHaveBeenLastCalledWith(90);
+    });
+
+    it('reports an error for a sound set that does not exist', () => {
+      useQuizStore.setState({
+        quiz: {
+          ...fixtureQuiz,
+          questions: [
+            {
+              id: 'missing',
+              type: 'yes-no',
+              prompt: 'Is this a sound?',
+              sound: { soundSet: 'no-such-set', bpm: 72 },
+              answer: true,
+            },
+          ],
+        },
+      });
+      useQuizStore.getState().playSound();
+
+      expect(playFn).not.toHaveBeenCalled();
+      expect(useQuizStore.getState().audioError).toBe('Unknown sound set "no-such-set"');
+    });
+
+    it('resets isPlaying and reports an error when playback fails', async () => {
+      playFn.mockRejectedValueOnce(new Error('AudioContext blocked'));
+      startFixture();
+      useQuizStore.getState().playSound();
+      await Promise.resolve();
+
+      const state = useQuizStore.getState();
+      expect(state.isPlaying).toBe(false);
+      expect(state.audioError).toBe('AudioContext blocked');
+    });
+
+    it('does nothing when no quiz is loaded', () => {
+      useQuizStore.getState().playSound();
+      expect(playFn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('stopping sound', () => {
+    it('stopSound stops the player', () => {
+      startFixture();
+      useQuizStore.getState().playSound();
+      useQuizStore.getState().stopSound();
+
+      expect(stopFn).toHaveBeenCalled();
+      expect(useQuizStore.getState().isPlaying).toBe(false);
+    });
+
+    it.each(['nextQuestion', 'restart', 'exitQuiz'] as const)('%s stops the sound', (action) => {
+      startFixture();
+      useQuizStore.getState().answer(true);
+      useQuizStore.getState().playSound();
+      stopFn.mockClear();
+
+      useQuizStore.getState()[action]();
+      expect(stopFn).toHaveBeenCalled();
+      expect(useQuizStore.getState().isPlaying).toBe(false);
     });
   });
 });
