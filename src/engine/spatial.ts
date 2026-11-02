@@ -1,11 +1,13 @@
-import type { ComponentModifier, Filter, Location, LocationId } from './schema';
+import type {
+  ComponentModifier,
+  Filter,
+  Location,
+  LocationId,
+  SpatialConfig,
+  SpatialLandmark,
+} from './schema';
 
 export type Vector3Tuple = readonly [number, number, number];
-
-export interface SpatialLandmark {
-  readonly id: LocationId;
-  readonly position: Vector3Tuple;
-}
 
 export interface SpatialAuscultationResult {
   /** Distance attenuation multiplier [0.0, 1.0] */
@@ -35,13 +37,15 @@ export interface SpatialAuscultationOptions {
   readonly minFilterHz?: number;
   /** Distance scale for tissue lowpass filter roll-off (default: 0.30) */
   readonly filterRollOffDist?: number;
+  /** Subtle stereo panning multiplier (default: 0.8) */
+  readonly stereoPanScale?: number;
 }
 
 const DEFAULT_LANDMARKS: readonly SpatialLandmark[] = [
-  { id: 'aortic', position: [-0.08, 1.442, 0.264] },
-  { id: 'pulmonic', position: [0.205, 1.446, 0.278] },
-  { id: 'tricuspid', position: [0.004, 1.109, 0.316] },
-  { id: 'mitral', position: [0.321, 1.023, 0.299] },
+  { id: 'aortic', label: 'Aortic Area (2nd ICS RSB)', position: [-0.08, 1.442, 0.264] },
+  { id: 'pulmonic', label: 'Pulmonic Area (2nd ICS LSB)', position: [0.205, 1.446, 0.278] },
+  { id: 'tricuspid', label: 'Tricuspid Area (4th-5th ICS LSB)', position: [0.004, 1.109, 0.316] },
+  { id: 'mitral', label: 'Mitral Area / Apex (5th ICS MCL)', position: [0.321, 1.023, 0.299] },
 ];
 
 const KNOWN_COMPONENTS = [
@@ -73,15 +77,35 @@ export function calculateEuclideanDistance(p1: Vector3Tuple, p2: Vector3Tuple): 
 export function calculateSpatialAuscultation(
   stethoscopePos: Vector3Tuple,
   locations: Readonly<Record<LocationId, Location>>,
-  customLandmarks?: readonly SpatialLandmark[],
+  configOrLandmarks?: SpatialConfig | readonly SpatialLandmark[],
   options?: SpatialAuscultationOptions,
 ): SpatialAuscultationResult {
-  const landmarks = customLandmarks ?? DEFAULT_LANDMARKS;
-  const sigma = options?.sigma ?? 0.16;
-  const falloffHalfDist = options?.falloffHalfDist ?? 0.35;
-  const maxFilterHz = options?.maxFilterHz ?? 3800;
-  const minFilterHz = options?.minFilterHz ?? 320;
-  const filterRollOffDist = options?.filterRollOffDist ?? 0.3;
+  let landmarks: readonly SpatialLandmark[] = DEFAULT_LANDMARKS;
+  let activeOptions: SpatialAuscultationOptions | undefined = options;
+
+  if (configOrLandmarks) {
+    if ('acoustics' in configOrLandmarks && 'landmarks' in configOrLandmarks) {
+      landmarks = configOrLandmarks.landmarks;
+      activeOptions = {
+        sigma: configOrLandmarks.acoustics.sigma,
+        falloffHalfDist: configOrLandmarks.acoustics.falloffHalfDist,
+        maxFilterHz: configOrLandmarks.acoustics.maxFilterHz,
+        minFilterHz: configOrLandmarks.acoustics.minFilterHz,
+        filterRollOffDist: configOrLandmarks.acoustics.filterRollOffDist,
+        stereoPanScale: configOrLandmarks.acoustics.stereoPanScale,
+        ...options,
+      };
+    } else if (Array.isArray(configOrLandmarks)) {
+      landmarks = configOrLandmarks;
+    }
+  }
+
+  const sigma = activeOptions?.sigma ?? 0.16;
+  const falloffHalfDist = activeOptions?.falloffHalfDist ?? 0.35;
+  const maxFilterHz = activeOptions?.maxFilterHz ?? 3800;
+  const minFilterHz = activeOptions?.minFilterHz ?? 320;
+  const filterRollOffDist = activeOptions?.filterRollOffDist ?? 0.3;
+  const panScale = activeOptions?.stereoPanScale ?? 0.8;
 
   let nearestDist = Number.POSITIVE_INFINITY;
   let nearestId: LocationId = 'aortic';
@@ -144,7 +168,10 @@ export function calculateSpatialAuscultation(
   );
 
   // Subtle stereo panning based on horizontal chest coordinate (-0.35 to +0.35)
-  const stereoPan = Math.max(-0.35, Math.min(0.35, Number((stethoscopePos[0] * 0.8).toFixed(3))));
+  const stereoPan = Math.max(
+    -0.35,
+    Math.min(0.35, Number((stethoscopePos[0] * panScale).toFixed(3))),
+  );
 
   // Synthesize blended Location
   const blendedComponents: Record<string, ComponentModifier> = {};

@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { LocationsSchema, ManifestSchema, SoundSetSchema } from '../engine/schema';
+import {
+  LocationsSchema,
+  ManifestSchema,
+  SoundSetSchema,
+  SpatialConfigSchema,
+} from '../engine/schema';
 import {
   locationsRecord,
   manifest,
   PRESET_LOCATIONS,
   PRESET_SOUND_SETS,
   soundSetsRecord,
+  spatialConfig,
 } from './index';
 
 describe('Data files schema validation', () => {
@@ -34,6 +40,16 @@ describe('Data files schema validation', () => {
     expect(locationsRecord.pulmonic).toBeDefined();
     expect(locationsRecord.tricuspid).toBeDefined();
     expect(locationsRecord.mitral).toBeDefined();
+  });
+
+  it('validates spatial config against SpatialConfigSchema', () => {
+    const result = SpatialConfigSchema.safeParse(spatialConfig);
+    expect(result.success).toBe(true);
+    expect(spatialConfig.landmarks.length).toBeGreaterThanOrEqual(4);
+    expect(spatialConfig.acoustics.sigma).toBeGreaterThan(0);
+    expect(spatialConfig.acoustics.maxFilterHz).toBeGreaterThan(
+      spatialConfig.acoustics.minFilterHz,
+    );
   });
 
   it('contains expected clinical sound sets in soundSetsRecord', () => {

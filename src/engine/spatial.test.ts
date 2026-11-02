@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { locationsRecord } from '../data';
+import { locationsRecord, spatialConfig } from '../data';
+import type { SpatialConfig } from './schema';
 import {
   calculateEuclideanDistance,
   calculateSpatialAuscultation,
@@ -80,5 +81,29 @@ describe('Spatial Auscultation Engine', () => {
 
     expect(rightResult.stereoPan).toBeLessThan(0);
     expect(leftResult.stereoPan).toBeGreaterThan(0);
+  });
+
+  it('accepts custom SpatialConfig overrides', () => {
+    const aorticPos: Vector3Tuple = [-0.08, 1.442, 0.264];
+    const customConfig: SpatialConfig = {
+      ...spatialConfig,
+      acoustics: {
+        ...spatialConfig.acoustics,
+        minFilterHz: 500,
+        falloffHalfDist: 0.1,
+      },
+    };
+
+    const distantPos: Vector3Tuple = [0.8, 1.9, 0.2];
+    const normalResult = calculateSpatialAuscultation(distantPos, locationsRecord, spatialConfig);
+    const customResult = calculateSpatialAuscultation(distantPos, locationsRecord, customConfig);
+
+    // Sharper falloff means less gain
+    expect(customResult.spatialGain).toBeLessThan(normalResult.spatialGain);
+    // Min lowpass is higher (500 vs 320)
+    expect(customResult.tissueLowpassHz).toBeGreaterThanOrEqual(500);
+
+    const atAortic = calculateSpatialAuscultation(aorticPos, locationsRecord, customConfig);
+    expect(atAortic.nearestValveId).toBe('aortic');
   });
 });

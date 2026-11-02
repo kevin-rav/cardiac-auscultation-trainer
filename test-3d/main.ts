@@ -1,5 +1,5 @@
 import { CardiacAudioPlayer } from '../src/audio/player';
-import { locationsRecord, manifest, PRESET_SOUND_SETS } from '../src/data';
+import { locationsRecord, manifest, PRESET_SOUND_SETS, spatialConfig } from '../src/data';
 import { calculateSpatialAuscultation } from '../src/engine/spatial';
 import { DEFAULT_MODEL_URL, Torso3DViewer } from './test-3d.ts';
 import type { AuscultationPointDefinition, AuscultationPointId, PinDropData } from './types.ts';
@@ -120,7 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const applySpatialAcoustics = (data: PinDropData): void => {
-    const spatial = calculateSpatialAuscultation(data.modelPosition, locationsRecord);
+    const spatial = calculateSpatialAuscultation(
+      data.modelPosition,
+      locationsRecord,
+      spatialConfig,
+    );
 
     // Apply real-time acoustic spatialization to the audio player
     player.setLocation(spatial.effectiveLocation);
