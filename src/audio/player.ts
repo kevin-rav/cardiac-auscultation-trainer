@@ -10,7 +10,7 @@ import {
 } from '../engine/schema';
 import { scheduleEvents, type ScheduledEvent } from '../engine/scheduler';
 import { getAudioContext, resumeAudioContext } from './context';
-import { AudioGraph } from './graph';
+import { AudioGraph, type SpatialParameters } from './graph';
 import { SampleLoader } from './loader';
 
 interface ActiveVoice {
@@ -91,6 +91,12 @@ export class CardiacAudioPlayer {
 
   public setLocation(location?: Location): void {
     this.location = location;
+  }
+
+  public setSpatialParameters(params: SpatialParameters): void {
+    if (this.audioGraph) {
+      this.audioGraph.setSpatialParameters(params);
+    }
   }
 
   public setManifest(manifest: Manifest): void {
