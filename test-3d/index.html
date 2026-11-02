@@ -14,6 +14,63 @@
           <span class="badge-tag">3D Model</span>
           <span class="title-text">Cardiac Torso Auscultation Explorer</span>
         </div>
+
+        <!-- Audio Auscultation Control Bar -->
+        <div class="audio-control-bar" role="region" aria-label="Cardiac Auscultation Controls">
+          <button
+            id="btnPlayAudio"
+            class="auscultate-btn"
+            title="Start/Stop Heartbeat Auscultation (Space or S)"
+            aria-pressed="false"
+          >
+            <span id="playIcon">▶</span>
+            <span id="playLabel">Auscultate</span>
+          </button>
+
+          <div class="control-divider"></div>
+
+          <div class="condition-wrap">
+            <label for="selectCondition" class="ctrl-label">Condition:</label>
+            <select
+              id="selectCondition"
+              class="condition-dropdown"
+              title="Select Cardiac Pathology Sound Set"
+            ></select>
+          </div>
+
+          <div class="control-divider"></div>
+
+          <div class="slider-control" title="Heart Rate (BPM)">
+            <label for="sliderBpm" class="ctrl-label">BPM:</label>
+            <input
+              type="range"
+              id="sliderBpm"
+              min="40"
+              max="160"
+              value="72"
+              step="1"
+              class="range-slider"
+            />
+            <span id="labelBpm" class="ctrl-val">72</span>
+          </div>
+
+          <div class="control-divider"></div>
+
+          <div class="slider-control" title="Stethoscope Volume">
+            <label for="sliderVolume" class="ctrl-label">Vol:</label>
+            <input
+              type="range"
+              id="sliderVolume"
+              min="0"
+              max="100"
+              value="80"
+              step="1"
+              class="range-slider"
+            />
+            <span id="labelVolume" class="ctrl-val">80%</span>
+          </div>
+        </div>
+
         <a href="../" class="back-link" title="Return to Trainer">← Back to Trainer</a>
       </header>
 
@@ -106,6 +163,43 @@
         </div>
       </aside>
 
+      <!-- Stethoscope & Coordinates HUD -->
+      <div class="pin-drop-hud" id="pinDropHud" style="display: none" aria-live="polite">
+        <div class="pin-hud-header">
+          <div class="pin-hud-title-wrap">
+            <span class="pin-dot-indicator"></span>
+            <span class="pin-hud-title" id="pinHudTitle">Stethoscope Auscultation</span>
+          </div>
+          <button
+            class="pin-hud-clear"
+            id="btnPinClear"
+            title="Clear Pin (C)"
+            aria-label="Clear dropped pin"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="pin-hud-body">
+          <div class="pin-hud-row">
+            <span class="pin-hud-label">Model [x, y, z]:</span>
+            <code class="pin-hud-coords" id="pinModelCoords">[0.000, 0.000, 0.000]</code>
+          </div>
+          <div class="pin-hud-row">
+            <span class="pin-hud-label">Proximity:</span>
+            <span class="pin-hud-val" id="pinProximity">Aortic: 100%</span>
+          </div>
+          <div class="pin-hud-row">
+            <span class="pin-hud-label">Tissue Filter:</span>
+            <span class="pin-hud-val" id="pinTissueFilter">3,800 Hz (Precordium)</span>
+          </div>
+          <div class="pin-hud-row">
+            <span class="pin-hud-label">Spatial Level:</span>
+            <span class="pin-hud-val" id="pinSpatialGain">100%</span>
+          </div>
+          <button class="pin-hud-copy" id="btnPinCopy">Copy Model Coordinates</button>
+        </div>
+      </div>
+
       <!-- Interactive Controls Dock (CON-XR Inspired) -->
       <nav class="controls-dock" aria-label="Viewer Controls">
         <div class="point-switcher-group">
@@ -128,6 +222,22 @@
         </div>
 
         <div class="utility-group">
+          <button
+            class="icon-btn"
+            id="btnToggleStethoscope"
+            title="Toggle Stethoscope Mode: Drag across chest to listen live (L)"
+            aria-label="Toggle Stethoscope Drag Mode"
+          >
+            🩺
+          </button>
+          <button
+            class="icon-btn active"
+            id="btnTogglePinDrop"
+            title="Toggle Pin Drop Mode (Click model to drop red pin)"
+            aria-label="Toggle Pin Drop"
+          >
+            📍
+          </button>
           <button
             class="icon-btn"
             id="btnResetCamera"

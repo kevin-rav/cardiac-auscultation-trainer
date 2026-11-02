@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { ManifestSchema, QuizSchema, SoundSetSchema } from '../engine/schema';
-import { manifest, PRESET_QUIZZES, PRESET_SOUND_SETS, soundSetsRecord } from './index';
+import {
+  LocationsSchema,
+  ManifestSchema,
+  QuizSchema,
+  SoundSetSchema,
+  SpatialConfigSchema,
+} from '../engine/schema';
+import {
+  locationsRecord,
+  manifest,
+  PRESET_LOCATIONS,
+  PRESET_QUIZZES,
+  PRESET_SOUND_SETS,
+  soundSetsRecord,
+  spatialConfig,
+} from './index';
 
 describe('Data files schema validation', () => {
   it('validates manifest against ManifestSchema', () => {
@@ -17,6 +31,27 @@ describe('Data files schema validation', () => {
       expect(result.success, `Failed validating soundSet: ${soundSet.id}`).toBe(true);
       expect(soundSet.events.length).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it('validates preset locations against LocationsSchema', () => {
+    const result = LocationsSchema.safeParse(PRESET_LOCATIONS);
+    expect(result.success).toBe(true);
+    expect(PRESET_LOCATIONS.length).toBe(4);
+
+    expect(locationsRecord.aortic).toBeDefined();
+    expect(locationsRecord.pulmonic).toBeDefined();
+    expect(locationsRecord.tricuspid).toBeDefined();
+    expect(locationsRecord.mitral).toBeDefined();
+  });
+
+  it('validates spatial config against SpatialConfigSchema', () => {
+    const result = SpatialConfigSchema.safeParse(spatialConfig);
+    expect(result.success).toBe(true);
+    expect(spatialConfig.landmarks.length).toBeGreaterThanOrEqual(4);
+    expect(spatialConfig.acoustics.sigma).toBeGreaterThan(0);
+    expect(spatialConfig.acoustics.maxFilterHz).toBeGreaterThan(
+      spatialConfig.acoustics.minFilterHz,
+    );
   });
 
   it('contains expected clinical sound sets in soundSetsRecord', () => {

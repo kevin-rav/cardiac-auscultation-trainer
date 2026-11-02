@@ -4,3 +4,4 @@ export * from './envelope';
 export * from './beats';
 export * from './resolve';
 export * from './scheduler';
+export * from './spatial';

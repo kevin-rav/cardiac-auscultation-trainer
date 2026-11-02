@@ -43,6 +43,10 @@ export class MockDynamicsCompressorNode extends MockAudioNode {
   public release = new MockAudioParam();
 }
 
+export class MockStereoPannerNode extends MockAudioNode {
+  public pan = new MockAudioParam();
+}
+
 export class MockAudioBuffer {
   public numberOfChannels: number;
   public length: number;
@@ -100,6 +104,10 @@ export class MockAudioContext {
 
   public createDynamicsCompressor(): DynamicsCompressorNode {
     return new MockDynamicsCompressorNode() as unknown as DynamicsCompressorNode;
+  }
+
+  public createStereoPanner(): StereoPannerNode {
+    return new MockStereoPannerNode() as unknown as StereoPannerNode;
   }
 
   public decodeAudioData = vi.fn(() => {

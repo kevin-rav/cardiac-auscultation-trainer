@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SoundSet } from '../engine/schema';
 import { CardiacAudioPlayer } from './player';
-import { MockAudioBuffer, MockAudioContext } from './test-mocks';
+import { MockAudioBuffer, MockAudioContext, MockAudioParam } from './test-mocks';
 
 describe('CardiacAudioPlayer', () => {
   let mockCtx: MockAudioContext;
@@ -112,5 +112,27 @@ describe('CardiacAudioPlayer', () => {
     const buffer = await player.loadAudioData('custom', fakeData);
     expect(buffer).toBeDefined();
     expect(player.getSampleLoader().getBuffer('custom')).toBe(buffer);
+  });
+
+  it('updates spatial audio parameters on the audio graph', () => {
+    const graph = player.getAudioGraph();
+    expect(graph.spatialGainNode).toBeDefined();
+    expect(graph.spatialFilterNode).toBeDefined();
+
+    player.setSpatialParameters({
+      gain: 0.75,
+      lowpassHz: 2500,
+      pan: -0.2,
+    });
+
+    const gainParam = graph.spatialGainNode.gain as unknown as MockAudioParam;
+    const filterParam = graph.spatialFilterNode.frequency as unknown as MockAudioParam;
+
+    expect(gainParam.linearRampToValueAtTime).toHaveBeenCalledWith(0.75, expect.any(Number));
+    expect(filterParam.linearRampToValueAtTime).toHaveBeenCalledWith(2500, expect.any(Number));
+    if (graph.pannerNode) {
+      const pannerParam = graph.pannerNode.pan as unknown as MockAudioParam;
+      expect(pannerParam.linearRampToValueAtTime).toHaveBeenCalledWith(-0.2, expect.any(Number));
+    }
   });
 });
