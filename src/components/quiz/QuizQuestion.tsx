@@ -14,13 +14,15 @@ import { getCurrentQuestion, isAnswerCorrect, useQuizStore } from '../../store';
 interface QuizQuestionProps {
   /** Called once per question with the learner's selected answer. */
   onRecord: (questionId: string, selected: boolean) => void;
+  /** Called when the learner finishes the last question, before the results show. */
+  onFinish: () => void;
 }
 
 const CORRECT_STYLE =
   'border-emerald-600 bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/10 dark:text-emerald-400';
 const WRONG_STYLE = 'border-destructive bg-destructive/10 text-destructive';
 
-export function QuizQuestion({ onRecord }: QuizQuestionProps) {
+export function QuizQuestion({ onRecord, onFinish }: QuizQuestionProps) {
   const quiz = useQuizStore((s) => s.quiz);
   const question = useQuizStore(getCurrentQuestion);
   const questionIndex = useQuizStore((s) => s.questionIndex);
@@ -40,6 +42,11 @@ export function QuizQuestion({ onRecord }: QuizQuestionProps) {
   const total = quiz.questions.length;
   const answered = selectedAnswer !== null;
   const isLast = questionIndex === total - 1;
+
+  const handleNext = () => {
+    if (isLast) onFinish();
+    nextQuestion();
+  };
 
   const handleAnswer = (choice: boolean) => {
     if (answered) return;
@@ -155,7 +162,7 @@ export function QuizQuestion({ onRecord }: QuizQuestionProps) {
           <Button type="button" variant="ghost" onClick={exitQuiz}>
             Exit quiz
           </Button>
-          <Button type="button" onClick={nextQuestion} disabled={!answered}>
+          <Button type="button" onClick={handleNext} disabled={!answered}>
             {isLast ? 'See results' : 'Next question'}
           </Button>
         </CardFooter>

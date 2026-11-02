@@ -1,5 +1,4 @@
-import { Check, RotateCcw, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -10,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useQuizStore } from '../../store';
+import { AnswerReview, type ReviewItem } from './AnswerReview';
 
 interface QuizResultsProps {
   /** What the learner answered for each question, keyed by question id. */
@@ -18,8 +18,6 @@ interface QuizResultsProps {
   onRestart: () => void;
 }
 
-const yesNo = (value: boolean): string => (value ? 'Yes' : 'No');
-
 export function QuizResults({ answers, onRestart }: QuizResultsProps) {
   const quiz = useQuizStore((s) => s.quiz);
   const restart = useQuizStore((s) => s.restart);
@@ -27,8 +25,16 @@ export function QuizResults({ answers, onRestart }: QuizResultsProps) {
 
   if (quiz === null) return null;
 
-  const total = quiz.questions.length;
-  const score = quiz.questions.filter((q) => answers[q.id] === q.answer).length;
+  const items: ReviewItem[] = quiz.questions.map((q) => ({
+    id: q.id,
+    prompt: q.prompt,
+    selected: answers[q.id],
+    correctAnswer: q.answer,
+    explanation: q.explanation,
+  }));
+
+  const total = items.length;
+  const score = items.filter((item) => item.selected === item.correctAnswer).length;
   const percent = Math.round((score / total) * 100);
 
   return (
@@ -46,33 +52,7 @@ export function QuizResults({ answers, onRestart }: QuizResultsProps) {
       </CardHeader>
 
       <CardContent>
-        <ol className="flex flex-col gap-4">
-          {quiz.questions.map((q) => {
-            const selected = answers[q.id];
-            const ok = selected === q.answer;
-            return (
-              <li key={q.id} className="flex items-start gap-2 text-sm">
-                {ok ? (
-                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-label="Correct" />
-                ) : (
-                  <X className="mt-0.5 size-4 shrink-0 text-destructive" aria-label="Incorrect" />
-                )}
-                <div className="space-y-0.5">
-                  <p className="font-medium">{q.prompt}</p>
-                  <div className="flex flex-wrap gap-1.5 py-0.5">
-                    <Badge variant={ok ? 'secondary' : 'destructive'}>
-                      Your answer: {selected === undefined ? 'None' : yesNo(selected)}
-                    </Badge>
-                    {!ok && <Badge variant="outline">Correct answer: {yesNo(q.answer)}</Badge>}
-                  </div>
-                  {q.explanation !== undefined && (
-                    <p className="text-muted-foreground">{q.explanation}</p>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        <AnswerReview items={items} />
       </CardContent>
 
       <CardFooter className="justify-between">
