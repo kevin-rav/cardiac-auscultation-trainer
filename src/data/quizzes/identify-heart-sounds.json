@@ -1,0 +1,63 @@
+{
+  "id": "identify-heart-sounds",
+  "label": "Identify Heart Sounds",
+  "description": "Listen to each sound and decide whether it matches the question.",
+  "questions": [
+    {
+      "id": "normal-is-normal",
+      "type": "yes-no",
+      "prompt": "Is this a normal heart sound?",
+      "sound": { "soundSet": "normal-s1-s2" },
+      "answer": true,
+      "explanation": "Only S1 and S2 are present. S1 is closure of the mitral and tricuspid valves, S2 is closure of the aortic and pulmonic valves."
+    },
+    {
+      "id": "aortic-stenosis-is-normal",
+      "type": "yes-no",
+      "prompt": "Is this a normal heart sound?",
+      "sound": { "soundSet": "aortic-stenosis" },
+      "answer": false,
+      "explanation": "There is a harsh crescendo-decrescendo murmur between S1 and S2. This is aortic stenosis."
+    },
+    {
+      "id": "s3-is-s3",
+      "type": "yes-no",
+      "prompt": "Is this an S3 gallop?",
+      "sound": { "soundSet": "s3-gallop" },
+      "answer": true,
+      "explanation": "The extra sound comes in early diastole, just after S2, with a 'Ken-tuck-y' cadence."
+    },
+    {
+      "id": "s4-is-s3",
+      "type": "yes-no",
+      "prompt": "Is this an S3 gallop?",
+      "sound": { "soundSet": "s4-gallop" },
+      "answer": false,
+      "explanation": "The extra sound comes in late diastole, just before S1, with a 'Ten-nes-see' cadence. This is an S4 gallop."
+    },
+    {
+      "id": "s4-is-s4",
+      "type": "yes-no",
+      "prompt": "Is this an S4 gallop?",
+      "sound": { "soundSet": "s4-gallop" },
+      "answer": true,
+      "explanation": "The extra sound comes just before S1, from the atria contracting into a stiff ventricle."
+    },
+    {
+      "id": "click-is-click",
+      "type": "yes-no",
+      "prompt": "Is this a mid-systolic click?",
+      "sound": { "soundSet": "mid-systolic-click" },
+      "answer": true,
+      "explanation": "A sharp, high-pitched sound falls between S1 and S2. It is typical of mitral valve prolapse."
+    },
+    {
+      "id": "mitral-regurgitation-is-aortic-stenosis",
+      "type": "yes-no",
+      "prompt": "Is this aortic stenosis?",
+      "sound": { "soundSet": "mitral-regurgitation" },
+      "answer": false,
+      "explanation": "The murmur stays at the same loudness from S1 to S2 (holosystolic). This is mitral regurgitation, not the diamond-shaped murmur of aortic stenosis."
+    }
+  ]
+}
