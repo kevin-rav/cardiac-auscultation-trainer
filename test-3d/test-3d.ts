@@ -90,6 +90,8 @@ export class Torso3DViewer {
 
   // Pin drop properties
   private isPinDropEnabledState = true;
+  private isStethoscopeDragMode = false;
+  private isDraggingStethoscope = false;
   private pinMarkerGroup: THREE.Group | null = null;
   private pinSphere: THREE.Mesh | null = null;
   private pinCore: THREE.Mesh | null = null;
@@ -121,6 +123,9 @@ export class Torso3DViewer {
     }
     if (typeof options.enablePinDrop === 'boolean') {
       this.isPinDropEnabledState = options.enablePinDrop;
+    }
+    if (typeof options.enableStethoscopeDrag === 'boolean') {
+      this.isStethoscopeDragMode = options.enableStethoscopeDrag;
     }
 
     this.initScene();
@@ -423,6 +428,11 @@ export class Torso3DViewer {
     this.selectedPointId = id;
     this.updateMarkerVisuals();
     this.notifyPointSelected(id);
+    const inst = this.pointInstances.get(id);
+    if (inst) {
+      const pos = inst.definition.defaultPosition;
+      this.dropPinAtCoordinates(pos[0], pos[1], pos[2]);
+    }
   }
 
   private notifyPointSelected(id: AuscultationPointId): void {
@@ -574,6 +584,11 @@ export class Torso3DViewer {
       return;
     }
 
+    if (this.isDraggingStethoscope && this.isStethoscopeDragMode) {
+      this.dropPinAtScreen(event.clientX, event.clientY);
+      return;
+    }
+
     if (this.hoveredPointId !== null) {
       this.hoveredPointId = null;
       this.updateMarkerVisuals();
@@ -591,9 +606,30 @@ export class Torso3DViewer {
   private readonly handlePointerDown = (event: PointerEvent): void => {
     this.pointerDownPos = { x: event.clientX, y: event.clientY };
     this.pointerDownTime = performance.now();
+
+    if (this.isStethoscopeDragMode && this.modelRoot) {
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const hits = this.raycaster.intersectObject(this.modelRoot, true);
+        const meshHit = hits.find((h) => h.object instanceof THREE.Mesh);
+        if (meshHit) {
+          this.isDraggingStethoscope = true;
+          this.controls.enabled = false;
+          this.applyPinDrop(meshHit);
+        }
+      }
+    }
   };
 
   private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (this.isDraggingStethoscope) {
+      this.isDraggingStethoscope = false;
+      this.controls.enabled = !this.isRotationLocked;
+    }
+
     if (!this.pointerDownPos) return;
 
     const dx = event.clientX - this.pointerDownPos.x;
@@ -683,6 +719,7 @@ export class Torso3DViewer {
     this.lastPinDrop = pinData;
     this.reportPinDrop(pinData);
     this.options.onPinDrop?.(pinData);
+    this.options.onStethoscopeMove?.(pinData);
 
     return pinData;
   }
@@ -748,6 +785,7 @@ export class Torso3DViewer {
 
     this.reportPinDrop(pinData);
     this.options.onPinDrop?.(pinData);
+    this.options.onStethoscopeMove?.(pinData);
     return pinData;
   }
 
@@ -790,6 +828,19 @@ export class Torso3DViewer {
 
   public isPinDropEnabled(): boolean {
     return this.isPinDropEnabledState;
+  }
+
+  public toggleStethoscopeMode(enabled?: boolean): boolean {
+    if (typeof enabled === 'boolean') {
+      this.isStethoscopeDragMode = enabled;
+    } else {
+      this.isStethoscopeDragMode = !this.isStethoscopeDragMode;
+    }
+    return this.isStethoscopeDragMode;
+  }
+
+  public isStethoscopeMode(): boolean {
+    return this.isStethoscopeDragMode;
   }
 
   // Public control methods
