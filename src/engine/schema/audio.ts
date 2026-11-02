@@ -168,6 +168,9 @@ export const LocationSchema = z.object({
 });
 export type Location = z.infer<typeof LocationSchema>;
 
+export const LocationsSchema = z.array(LocationSchema);
+export type Locations = z.infer<typeof LocationsSchema>;
+
 export const CycleParamsSchema = z.object({
   systole: z.object({
     interceptMs: z.number().default(546),
