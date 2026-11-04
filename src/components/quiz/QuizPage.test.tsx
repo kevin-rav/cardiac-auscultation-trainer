@@ -2,7 +2,6 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardiacAudioPlayer } from '../../audio';
 import { PRESET_QUIZZES } from '../../data';
-import type { YesNoQuestion } from '../../engine/schema';
 import {
   MAX_QUIZ_FILE_BYTES,
   QUIZ_HISTORY_STORAGE_KEY,
@@ -10,6 +9,8 @@ import {
   useQuizHistoryStore,
   useQuizStore,
   useUploadedQuizStore,
+  type QuizAnswer,
+  type QuizQuestion,
 } from '../../store';
 import { QuizPage } from './QuizPage';
 
@@ -38,14 +39,25 @@ function startFirstQuiz(): void {
   fireEvent.click(screen.getByRole('button', { name: `Start quiz: ${quizLabel}` }));
 }
 
-function clickAnswer(choice: boolean): void {
-  fireEvent.click(screen.getByRole('button', { name: choice ? 'Yes' : 'No' }));
+/** The button label for an answer: Yes or No, or the choice's label. */
+function answerLabel(question: QuizQuestion, choice: QuizAnswer): string {
+  if (typeof choice === 'boolean') return choice ? 'Yes' : 'No';
+  const label =
+    question.type === 'multiple-choice'
+      ? question.choices.find((c) => c.id === choice)?.label
+      : undefined;
+  if (label === undefined) throw new Error(`No choice "${choice}" in question "${question.id}"`);
+  return label;
+}
+
+function clickAnswer(question: QuizQuestion, choice: QuizAnswer): void {
+  fireEvent.click(screen.getByRole('button', { name: answerLabel(question, choice) }));
 }
 
 /** Answers every question with `pick(question)` and clicks through to the results. */
-function answerAll(pick: (question: YesNoQuestion) => boolean): void {
+function answerAll(pick: (question: QuizQuestion) => QuizAnswer): void {
   questions.forEach((q, i) => {
-    clickAnswer(pick(q));
+    clickAnswer(q, pick(q));
     const isLast = i === questionCount - 1;
     fireEvent.click(
       screen.getByRole('button', { name: isLast ? /see results/i : /next question/i }),
@@ -90,7 +102,7 @@ describe('QuizPage', () => {
     const next = screen.getByRole('button', { name: /next question/i });
     expect(next).toHaveProperty('disabled', true);
 
-    clickAnswer(firstQuestion.answer);
+    clickAnswer(firstQuestion, firstQuestion.answer);
 
     expect(screen.getByText('Correct')).toBeDefined();
     expect(next).toHaveProperty('disabled', false);
@@ -98,7 +110,7 @@ describe('QuizPage', () => {
 
   it('shows wrong feedback after a wrong answer', () => {
     startFirstQuiz();
-    clickAnswer(!firstQuestion.answer);
+    clickAnswer(firstQuestion, !firstQuestion.answer);
     expect(screen.getByText('Not quite')).toBeDefined();
   });
 
@@ -153,7 +165,7 @@ describe('QuizPage', () => {
 
   it('does not save a quiz that was exited before finishing', () => {
     startFirstQuiz();
-    clickAnswer(firstQuestion.answer);
+    clickAnswer(firstQuestion, firstQuestion.answer);
     fireEvent.click(screen.getByRole('button', { name: /exit quiz/i }));
 
     expect(useQuizHistoryStore.getState().attempts).toHaveLength(0);

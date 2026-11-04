@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { CardiacAudioPlayer } from '../audio';
-import type { Quiz, QuizAnswer, SoundSet, YesNoQuestion } from '../engine/schema';
+import type { Quiz, QuizAnswer, QuizQuestion, SoundSet } from '../engine/schema';
 import { manifest, quizzesRecord, soundSetsRecord } from '../data';
 import { useUploadedQuizStore } from './uploadedQuizStore';
 
-export type { Quiz, QuizAnswer } from '../engine/schema';
+export type { Quiz, QuizAnswer, QuizChoice, QuizQuestion } from '../engine/schema';
 
 export interface QuizState {
   quiz: Quiz | null;
@@ -25,7 +25,7 @@ export interface QuizState {
   stopSound: () => void;
 }
 
-export function getCurrentQuestion(state: QuizState): YesNoQuestion | null {
+export function getCurrentQuestion(state: QuizState): QuizQuestion | null {
   return state.quiz?.questions[state.questionIndex] ?? null;
 }
 
@@ -34,6 +34,12 @@ export function isAnswerCorrect(state: QuizState): boolean | null {
   const question = getCurrentQuestion(state);
   if (!question || state.selectedAnswer === null) return null;
   return state.selectedAnswer === question.answer;
+}
+
+/** A yes-no question takes true or false; a multiple-choice question takes one of its choice ids. */
+function isValidAnswer(question: QuizQuestion, choice: QuizAnswer): boolean {
+  if (question.type === 'yes-no') return typeof choice === 'boolean';
+  return question.choices.some((c) => c.id === choice);
 }
 
 let quizPlayer: CardiacAudioPlayer | null = null;
@@ -73,8 +79,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   answer: (choice) => {
     const state = get();
+    const question = getCurrentQuestion(state);
     // Lock in the first answer so feedback cannot be changed by clicking again.
-    if (!getCurrentQuestion(state) || state.selectedAnswer !== null) return;
+    if (!question || state.selectedAnswer !== null || !isValidAnswer(question, choice)) return;
     set({ selectedAnswer: choice });
   },
 
