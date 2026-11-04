@@ -1,0 +1,85 @@
+{
+  "id": "name-that-sound",
+  "label": "Name That Sound",
+  "description": "Listen to each sound and pick what it is.",
+  "questions": [
+    {
+      "id": "gallop-s3",
+      "type": "multiple-choice",
+      "prompt": "Which sound is this?",
+      "sound": { "soundSet": "s3-gallop" },
+      "choices": [
+        { "id": "s3-gallop", "label": "S3 gallop" },
+        { "id": "s4-gallop", "label": "S4 gallop" },
+        { "id": "normal", "label": "Normal S1–S2" }
+      ],
+      "answer": "s3-gallop",
+      "explanation": "The extra sound comes in early diastole, just after S2, with a 'Ken-tuck-y' cadence."
+    },
+    {
+      "id": "gallop-s4",
+      "type": "multiple-choice",
+      "prompt": "Which sound is this?",
+      "sound": { "soundSet": "s4-gallop" },
+      "choices": [
+        { "id": "s3-gallop", "label": "S3 gallop" },
+        { "id": "s4-gallop", "label": "S4 gallop" },
+        { "id": "normal", "label": "Normal S1–S2" }
+      ],
+      "answer": "s4-gallop",
+      "explanation": "The extra sound comes in late diastole, just before S1, with a 'Ten-nes-see' cadence."
+    },
+    {
+      "id": "murmur-aortic-stenosis",
+      "type": "multiple-choice",
+      "prompt": "Which murmur is this?",
+      "sound": { "soundSet": "aortic-stenosis" },
+      "choices": [
+        { "id": "aortic-stenosis", "label": "Aortic stenosis" },
+        { "id": "mitral-regurgitation", "label": "Mitral regurgitation" },
+        { "id": "mvp-late-systolic", "label": "MVP with late systolic murmur" }
+      ],
+      "answer": "aortic-stenosis",
+      "explanation": "The murmur rises and falls between S1 and S2 (crescendo-decrescendo, or diamond-shaped)."
+    },
+    {
+      "id": "murmur-mitral-regurgitation",
+      "type": "multiple-choice",
+      "prompt": "Which murmur is this?",
+      "sound": { "soundSet": "mitral-regurgitation" },
+      "choices": [
+        { "id": "aortic-stenosis", "label": "Aortic stenosis" },
+        { "id": "mitral-regurgitation", "label": "Mitral regurgitation" },
+        { "id": "mvp-late-systolic", "label": "MVP with late systolic murmur" }
+      ],
+      "answer": "mitral-regurgitation",
+      "explanation": "The murmur stays at the same loudness all the way from S1 to S2 (holosystolic)."
+    },
+    {
+      "id": "systolic-click",
+      "type": "multiple-choice",
+      "prompt": "Which sound is this?",
+      "sound": { "soundSet": "mid-systolic-click" },
+      "choices": [
+        { "id": "mid-systolic-click", "label": "Mid-systolic click" },
+        { "id": "mvp-late-systolic", "label": "Click with late systolic murmur" },
+        { "id": "normal", "label": "Normal S1–S2" }
+      ],
+      "answer": "mid-systolic-click",
+      "explanation": "A sharp, high-pitched click falls between S1 and S2, with no murmur after it."
+    },
+    {
+      "id": "systolic-click-murmur",
+      "type": "multiple-choice",
+      "prompt": "Which sound is this?",
+      "sound": { "soundSet": "mvp-late-systolic-murmur" },
+      "choices": [
+        { "id": "mid-systolic-click", "label": "Mid-systolic click" },
+        { "id": "mvp-late-systolic", "label": "Click with late systolic murmur" },
+        { "id": "normal", "label": "Normal S1–S2" }
+      ],
+      "answer": "mvp-late-systolic",
+      "explanation": "A click is followed by a murmur that grows louder until S2, typical of mitral valve prolapse with regurgitation."
+    }
+  ]
+}
