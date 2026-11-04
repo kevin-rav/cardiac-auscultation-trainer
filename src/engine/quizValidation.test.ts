@@ -109,4 +109,57 @@ describe('validateQuiz', () => {
     if (!result.success) return;
     expect(result.warnings).toEqual([]);
   });
+
+  describe('multiple-choice questions', () => {
+    function mcq(id: string, answer: string, choiceIds: string[] = ['s3', 's4']) {
+      return {
+        id,
+        type: 'multiple-choice',
+        prompt: 'Which sound is this?',
+        sound: { soundSet: 's3-gallop' },
+        choices: choiceIds.map((choiceId) => ({ id: choiceId, label: choiceId.toUpperCase() })),
+        answer,
+      };
+    }
+
+    it('accepts a valid multiple-choice question', () => {
+      expect(validateQuiz(quiz([mcq('m1', 's3')]), knownSoundSets).success).toBe(true);
+    });
+
+    it('reports a duplicate choice id', () => {
+      const result = validateQuiz(quiz([mcq('m1', 's3', ['s3', 's3'])]), knownSoundSets);
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.errors).toEqual([
+        { path: 'questions.0.choices.1.id', message: 'Duplicate choice id "s3"' },
+      ]);
+    });
+
+    it('reports an answer that is not one of the choices', () => {
+      const result = validateQuiz(quiz([mcq('m1', 'normal')]), knownSoundSets);
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.errors).toEqual([
+        { path: 'questions.0.answer', message: 'Answer "normal" is not one of the choices' },
+      ]);
+    });
+
+    it('does not count multiple-choice answers toward the same-answer warning', () => {
+      const oneYesNo = validateQuiz(
+        quiz([question('q1', 's3-gallop', true), mcq('m1', 's3'), mcq('m2', 's3')]),
+        knownSoundSets,
+      );
+      expect(oneYesNo.success && oneYesNo.warnings).toEqual([]);
+
+      const twoYes = validateQuiz(
+        quiz([
+          question('q1', 's3-gallop', true),
+          question('q2', 's4-gallop', true),
+          mcq('m1', 's4'),
+        ]),
+        knownSoundSets,
+      );
+      expect(twoYes.success && twoYes.warnings).toHaveLength(1);
+    });
+  });
 });
