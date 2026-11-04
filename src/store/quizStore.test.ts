@@ -8,6 +8,7 @@ import {
   setQuizPlayerInstance,
   useQuizStore,
 } from './quizStore';
+import { useUploadedQuizStore } from './uploadedQuizStore';
 
 const playFn = vi.fn<() => Promise<void>>();
 const stopFn = vi.fn();
@@ -68,6 +69,14 @@ describe('QuizStore', () => {
       const state = useQuizStore.getState();
       expect(state.quiz?.id).toBe(preset.id);
       expect(getCurrentQuestion(state)).toEqual(preset.questions[0]);
+    });
+
+    it('loads an uploaded quiz by id', () => {
+      useUploadedQuizStore.setState({ quizzes: [{ ...fixtureQuiz, id: 'uploaded-quiz' }] });
+
+      expect(useQuizStore.getState().startQuiz('uploaded-quiz')).toBe(true);
+      expect(useQuizStore.getState().quiz?.id).toBe('uploaded-quiz');
+      useUploadedQuizStore.setState({ quizzes: [] });
     });
 
     it('returns false and changes nothing for an unknown id', () => {
