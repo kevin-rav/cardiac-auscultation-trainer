@@ -4,10 +4,12 @@ import type { CardiacAudioPlayer } from '../../audio';
 import { PRESET_QUIZZES } from '../../data';
 import type { YesNoQuestion } from '../../engine/schema';
 import {
+  MAX_QUIZ_FILE_BYTES,
   QUIZ_HISTORY_STORAGE_KEY,
   setQuizPlayerInstance,
   useQuizHistoryStore,
   useQuizStore,
+  useUploadedQuizStore,
 } from '../../store';
 import { QuizPage } from './QuizPage';
 
@@ -55,6 +57,7 @@ describe('QuizPage', () => {
   beforeEach(() => {
     localStorage.clear();
     useQuizHistoryStore.setState({ attempts: [] });
+    useUploadedQuizStore.setState({ quizzes: [] });
     useQuizStore.setState(initialState, true);
     setQuizPlayerInstance(mockPlayer);
     vi.clearAllMocks();
@@ -191,5 +194,106 @@ describe('QuizPage', () => {
 
     expect(useQuizHistoryStore.getState().attempts).toHaveLength(0);
     expect(screen.queryByText('Previous attempts')).toBeNull();
+  });
+
+  describe('uploading quizzes', () => {
+    function uploadedQuiz(answers: [boolean, boolean] = [true, false], label = 'My Upload') {
+      return {
+        id: 'my-upload',
+        label,
+        questions: [
+          {
+            id: 'q1',
+            type: 'yes-no',
+            prompt: 'Is this an uploaded S3 question?',
+            sound: { soundSet: 's3-gallop' },
+            answer: answers[0],
+          },
+          {
+            id: 'q2',
+            type: 'yes-no',
+            prompt: 'Is this an uploaded S4 question?',
+            sound: { soundSet: 's4-gallop' },
+            answer: answers[1],
+          },
+        ],
+      };
+    }
+
+    function upload(content: string, name = 'quiz.json'): void {
+      const file = new File([content], name, { type: 'application/json' });
+      fireEvent.change(screen.getByLabelText('Quiz file'), { target: { files: [file] } });
+    }
+
+    it('adds a valid quiz and runs it', async () => {
+      render(<QuizPage />);
+      upload(JSON.stringify(uploadedQuiz()));
+
+      expect((await screen.findByRole('status')).textContent).toContain('Added "My Upload"');
+      fireEvent.click(screen.getByRole('button', { name: 'Start quiz: My Upload' }));
+      expect(screen.getByText('Is this an uploaded S3 question?')).toBeDefined();
+    });
+
+    it('lists every problem and adds nothing for an invalid quiz', async () => {
+      const quiz = uploadedQuiz();
+      const [first, second] = quiz.questions;
+      if (!first || !second) throw new Error('Expected two questions');
+      first.sound.soundSet = 's5-gallop';
+      second.id = 'q1';
+
+      render(<QuizPage />);
+      upload(JSON.stringify(quiz));
+
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toContain(
+        'questions.0.sound.soundSet: Unknown sound set "s5-gallop"',
+      );
+      expect(alert.textContent).toContain('questions.1.id: Duplicate question id "q1"');
+      expect(useUploadedQuizStore.getState().quizzes).toEqual([]);
+    });
+
+    it('reports a file that is not JSON', async () => {
+      render(<QuizPage />);
+      upload('{ not json');
+      expect((await screen.findByRole('alert')).textContent).toContain(
+        'The file is not valid JSON',
+      );
+    });
+
+    it('rejects a file over the size limit without reading it', async () => {
+      render(<QuizPage />);
+      upload('x'.repeat(MAX_QUIZ_FILE_BYTES + 1));
+      expect((await screen.findByRole('alert')).textContent).toContain('larger than 1 MB');
+    });
+
+    it('uploads a quiz with warnings and shows them as a note', async () => {
+      render(<QuizPage />);
+      upload(JSON.stringify(uploadedQuiz([true, true])));
+
+      const status = await screen.findByRole('status');
+      expect(status.textContent).toContain('Added "My Upload"');
+      expect(status.textContent).toContain('Every answer is "yes"');
+      expect(useUploadedQuizStore.getState().quizzes).toHaveLength(1);
+    });
+
+    it('updates a quiz uploaded again with the same id', async () => {
+      render(<QuizPage />);
+      upload(JSON.stringify(uploadedQuiz()));
+      await screen.findByRole('status');
+      upload(JSON.stringify(uploadedQuiz([true, false], 'My Upload v2')));
+
+      expect(await screen.findByText('Updated "My Upload v2"')).toBeDefined();
+      expect(useUploadedQuizStore.getState().quizzes).toHaveLength(1);
+    });
+
+    it('removes an uploaded quiz', async () => {
+      render(<QuizPage />);
+      upload(JSON.stringify(uploadedQuiz()));
+      await screen.findByRole('status');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove uploaded quiz: My Upload' }));
+      expect(screen.queryByRole('button', { name: 'Start quiz: My Upload' })).toBeNull();
+      expect(useUploadedQuizStore.getState().quizzes).toEqual([]);
+    });
   });
 });

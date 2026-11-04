@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { CardiacAudioPlayer } from '../audio';
 import type { Quiz, SoundSet, YesNoQuestion } from '../engine/schema';
 import { manifest, quizzesRecord, soundSetsRecord } from '../data';
+import { useUploadedQuizStore } from './uploadedQuizStore';
 
 export interface QuizState {
   quiz: Quiz | null;
@@ -60,7 +61,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   audioError: null,
 
   startQuiz: (id) => {
-    const quiz = quizzesRecord[id];
+    const quiz =
+      quizzesRecord[id] ?? useUploadedQuizStore.getState().quizzes.find((q) => q.id === id);
     if (!quiz) return false;
     get().stopSound();
     set({ quiz, ...initialProgress });

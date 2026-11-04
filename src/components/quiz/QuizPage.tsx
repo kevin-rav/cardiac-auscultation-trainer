@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PRESET_QUIZZES } from '../../data';
 import { useQuizHistoryStore, useQuizStore, type QuizAttempt } from '../../store';
 import { QuizAttemptReview } from './QuizAttemptReview';
+import { QuizCard } from './QuizCard';
 import { QuizHistory } from './QuizHistory';
 import { QuizQuestion } from './QuizQuestion';
 import { QuizResults } from './QuizResults';
+import { UploadedQuizzes } from './UploadedQuizzes';
 
 /**
  * Quiz mode. Shows the quiz picker, then the current question, then the results.
@@ -93,32 +92,12 @@ export function QuizPage() {
           <ul className="flex flex-col gap-4">
             {PRESET_QUIZZES.map((q) => (
               <li key={q.id}>
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle>
-                        <h2 className="text-base font-semibold">{q.label}</h2>
-                      </CardTitle>
-                      <Badge variant="secondary">{q.questions.length} questions</Badge>
-                    </div>
-                    {q.description !== undefined && (
-                      <CardDescription>{q.description}</CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {
-                        handleStart(q.id);
-                      }}
-                      aria-label={`Start quiz: ${q.label}`}
-                    >
-                      Start quiz
-                    </Button>
-                  </CardContent>
-                </Card>
+                <QuizCard quiz={q} onStart={handleStart} />
               </li>
             ))}
           </ul>
+
+          <UploadedQuizzes onStart={handleStart} />
 
           <QuizHistory onSelect={setReviewing} />
         </>
