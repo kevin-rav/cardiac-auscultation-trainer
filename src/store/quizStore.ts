@@ -1,20 +1,22 @@
 import { create } from 'zustand';
 import { CardiacAudioPlayer } from '../audio';
-import type { Quiz, SoundSet, YesNoQuestion } from '../engine/schema';
+import type { Quiz, QuizAnswer, SoundSet, YesNoQuestion } from '../engine/schema';
 import { manifest, quizzesRecord, soundSetsRecord } from '../data';
 import { useUploadedQuizStore } from './uploadedQuizStore';
+
+export type { Quiz, QuizAnswer } from '../engine/schema';
 
 export interface QuizState {
   quiz: Quiz | null;
   questionIndex: number;
   /** The learner's answer to the current question, or null before they answer. */
-  selectedAnswer: boolean | null;
+  selectedAnswer: QuizAnswer | null;
   isFinished: boolean;
   isPlaying: boolean;
   audioError: string | null;
 
   startQuiz: (id: string) => boolean;
-  answer: (choice: boolean) => void;
+  answer: (choice: QuizAnswer) => void;
   nextQuestion: () => void;
   restart: () => void;
   exitQuiz: () => void;

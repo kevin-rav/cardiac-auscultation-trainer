@@ -28,3 +28,6 @@ export const QuizSchema = z.object({
   questions: z.array(YesNoQuestionSchema).min(1),
 });
 export type Quiz = z.infer<typeof QuizSchema>;
+
+/** A learner's answer: true or false for a yes-no question. */
+export type QuizAnswer = boolean | string;

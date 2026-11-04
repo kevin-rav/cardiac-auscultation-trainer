@@ -8,12 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useQuizStore } from '../../store';
+import { useQuizStore, type QuizAnswer } from '../../store';
 import { AnswerReview, type ReviewItem } from './AnswerReview';
 
 interface QuizResultsProps {
   /** What the learner answered for each question, keyed by question id. */
-  answers: Record<string, boolean>;
+  answers: Record<string, QuizAnswer>;
   /** Called when the learner restarts, so the page can clear its answers. */
   onRestart: () => void;
 }

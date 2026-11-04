@@ -9,11 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getCurrentQuestion, isAnswerCorrect, useQuizStore } from '../../store';
+import { getCurrentQuestion, isAnswerCorrect, useQuizStore, type QuizAnswer } from '../../store';
 
 interface QuizQuestionProps {
   /** Called once per question with the learner's selected answer. */
-  onRecord: (questionId: string, selected: boolean) => void;
+  onRecord: (questionId: string, selected: QuizAnswer) => void;
   /** Called when the learner finishes the last question, before the results show. */
   onFinish: () => void;
 }
@@ -48,13 +48,13 @@ export function QuizQuestion({ onRecord, onFinish }: QuizQuestionProps) {
     nextQuestion();
   };
 
-  const handleAnswer = (choice: boolean) => {
+  const handleAnswer = (choice: QuizAnswer) => {
     if (answered) return;
     answer(choice);
     onRecord(question.id, choice);
   };
 
-  const optionStyle = (choice: boolean): string => {
+  const optionStyle = (choice: QuizAnswer): string => {
     if (!answered) return '';
     if (choice === question.answer) return CORRECT_STYLE;
     if (choice === selectedAnswer) return WRONG_STYLE;

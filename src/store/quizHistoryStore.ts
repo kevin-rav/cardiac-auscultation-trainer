@@ -24,8 +24,9 @@ export const QuizAttemptSchema = z.object({
     z.object({
       questionId: z.string(),
       prompt: z.string(),
-      selected: z.boolean(),
-      correctAnswer: z.boolean(),
+      // true or false for yes-no questions.
+      selected: z.union([z.boolean(), z.string()]),
+      correctAnswer: z.union([z.boolean(), z.string()]),
       explanation: z.string().optional(),
     }),
   ),

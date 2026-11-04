@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PRESET_QUIZZES } from '../../data';
-import { useQuizHistoryStore, useQuizStore, type QuizAttempt } from '../../store';
+import { useQuizHistoryStore, useQuizStore, type QuizAnswer, type QuizAttempt } from '../../store';
 import { QuizAttemptReview } from './QuizAttemptReview';
 import { QuizCard } from './QuizCard';
 import { QuizHistory } from './QuizHistory';
@@ -21,7 +21,7 @@ export function QuizPage() {
 
   // The store does not keep a score, so the page remembers what the learner
   // answered for each question, keyed by question id.
-  const [answers, setAnswers] = useState<Record<string, boolean>>({});
+  const [answers, setAnswers] = useState<Record<string, QuizAnswer>>({});
 
   // A saved attempt the learner opened from the history list, if any.
   const [reviewing, setReviewing] = useState<QuizAttempt | null>(null);
@@ -38,7 +38,7 @@ export function QuizPage() {
     startQuiz(id);
   };
 
-  const recordAnswer = (questionId: string, selected: boolean) => {
+  const recordAnswer = (questionId: string, selected: QuizAnswer) => {
     setAnswers((prev) => ({ ...prev, [questionId]: selected }));
   };
 
