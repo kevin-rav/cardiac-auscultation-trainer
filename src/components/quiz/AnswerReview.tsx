@@ -1,20 +1,21 @@
 import { Check, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatAnswer, type QuizAnswer, type QuizChoice } from '../../store';
 
 export interface ReviewItem {
   id: string;
   prompt: string;
   /** What the learner answered, or undefined if they did not answer. */
-  selected: boolean | undefined;
-  correctAnswer: boolean;
+  selected: QuizAnswer | undefined;
+  correctAnswer: QuizAnswer;
   explanation: string | undefined;
+  /** Labels for multiple-choice answers; undefined for yes-no questions. */
+  choices: readonly QuizChoice[] | undefined;
 }
 
 interface AnswerReviewProps {
   items: readonly ReviewItem[];
 }
-
-const yesNo = (value: boolean): string => (value ? 'Yes' : 'No');
 
 /** Each question with the learner's answer, the correct answer and the explanation. */
 export function AnswerReview({ items }: AnswerReviewProps) {
@@ -33,10 +34,13 @@ export function AnswerReview({ items }: AnswerReviewProps) {
               <p className="font-medium">{item.prompt}</p>
               <div className="flex flex-wrap gap-1.5 py-0.5">
                 <Badge variant={ok ? 'secondary' : 'destructive'}>
-                  Your answer: {item.selected === undefined ? 'None' : yesNo(item.selected)}
+                  Your answer:{' '}
+                  {item.selected === undefined ? 'None' : formatAnswer(item.selected, item.choices)}
                 </Badge>
                 {!ok && (
-                  <Badge variant="outline">Correct answer: {yesNo(item.correctAnswer)}</Badge>
+                  <Badge variant="outline">
+                    Correct answer: {formatAnswer(item.correctAnswer, item.choices)}
+                  </Badge>
                 )}
               </div>
               {item.explanation !== undefined && (

@@ -47,6 +47,25 @@ export function validateQuiz(
       });
     }
     seenIds.add(question.id);
+
+    if (question.type === 'multiple-choice') {
+      const choiceIds = new Set<string>();
+      question.choices.forEach((choice, choiceIndex) => {
+        if (choiceIds.has(choice.id)) {
+          errors.push({
+            path: `questions.${String(index)}.choices.${String(choiceIndex)}.id`,
+            message: `Duplicate choice id "${choice.id}"`,
+          });
+        }
+        choiceIds.add(choice.id);
+      });
+      if (!choiceIds.has(question.answer)) {
+        errors.push({
+          path: `questions.${String(index)}.answer`,
+          message: `Answer "${question.answer}" is not one of the choices`,
+        });
+      }
+    }
   });
 
   if (errors.length > 0) {
@@ -54,8 +73,10 @@ export function validateQuiz(
   }
 
   const warnings: QuizIssue[] = [];
-  const answers = new Set(quiz.questions.map((question) => question.answer));
-  if (quiz.questions.length > 1 && answers.size === 1) {
+  // Only yes-no questions can be guessed by always giving the same answer.
+  const yesNoAnswers = quiz.questions.flatMap((q) => (q.type === 'yes-no' ? [q.answer] : []));
+  const answers = new Set(yesNoAnswers);
+  if (yesNoAnswers.length > 1 && answers.size === 1) {
     const only = answers.has(true) ? 'yes' : 'no';
     warnings.push({
       path: 'questions',

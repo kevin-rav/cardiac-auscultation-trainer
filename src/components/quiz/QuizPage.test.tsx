@@ -2,7 +2,6 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardiacAudioPlayer } from '../../audio';
 import { PRESET_QUIZZES } from '../../data';
-import type { YesNoQuestion } from '../../engine/schema';
 import {
   MAX_QUIZ_FILE_BYTES,
   QUIZ_HISTORY_STORAGE_KEY,
@@ -10,6 +9,9 @@ import {
   useQuizHistoryStore,
   useQuizStore,
   useUploadedQuizStore,
+  type Quiz,
+  type QuizAnswer,
+  type QuizQuestion,
 } from '../../store';
 import { QuizPage } from './QuizPage';
 
@@ -38,14 +40,25 @@ function startFirstQuiz(): void {
   fireEvent.click(screen.getByRole('button', { name: `Start quiz: ${quizLabel}` }));
 }
 
-function clickAnswer(choice: boolean): void {
-  fireEvent.click(screen.getByRole('button', { name: choice ? 'Yes' : 'No' }));
+/** The button label for an answer: Yes or No, or the choice's label. */
+function answerLabel(question: QuizQuestion, choice: QuizAnswer): string {
+  if (typeof choice === 'boolean') return choice ? 'Yes' : 'No';
+  const label =
+    question.type === 'multiple-choice'
+      ? question.choices.find((c) => c.id === choice)?.label
+      : undefined;
+  if (label === undefined) throw new Error(`No choice "${choice}" in question "${question.id}"`);
+  return label;
+}
+
+function clickAnswer(question: QuizQuestion, choice: QuizAnswer): void {
+  fireEvent.click(screen.getByRole('button', { name: answerLabel(question, choice) }));
 }
 
 /** Answers every question with `pick(question)` and clicks through to the results. */
-function answerAll(pick: (question: YesNoQuestion) => boolean): void {
+function answerAll(pick: (question: QuizQuestion) => QuizAnswer): void {
   questions.forEach((q, i) => {
-    clickAnswer(pick(q));
+    clickAnswer(q, pick(q));
     const isLast = i === questionCount - 1;
     fireEvent.click(
       screen.getByRole('button', { name: isLast ? /see results/i : /next question/i }),
@@ -90,7 +103,7 @@ describe('QuizPage', () => {
     const next = screen.getByRole('button', { name: /next question/i });
     expect(next).toHaveProperty('disabled', true);
 
-    clickAnswer(firstQuestion.answer);
+    clickAnswer(firstQuestion, firstQuestion.answer);
 
     expect(screen.getByText('Correct')).toBeDefined();
     expect(next).toHaveProperty('disabled', false);
@@ -98,7 +111,7 @@ describe('QuizPage', () => {
 
   it('shows wrong feedback after a wrong answer', () => {
     startFirstQuiz();
-    clickAnswer(!firstQuestion.answer);
+    clickAnswer(firstQuestion, !firstQuestion.answer);
     expect(screen.getByText('Not quite')).toBeDefined();
   });
 
@@ -153,7 +166,7 @@ describe('QuizPage', () => {
 
   it('does not save a quiz that was exited before finishing', () => {
     startFirstQuiz();
-    clickAnswer(firstQuestion.answer);
+    clickAnswer(firstQuestion, firstQuestion.answer);
     fireEvent.click(screen.getByRole('button', { name: /exit quiz/i }));
 
     expect(useQuizHistoryStore.getState().attempts).toHaveLength(0);
@@ -294,6 +307,85 @@ describe('QuizPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove uploaded quiz: My Upload' }));
       expect(screen.queryByRole('button', { name: 'Start quiz: My Upload' })).toBeNull();
       expect(useUploadedQuizStore.getState().quizzes).toEqual([]);
+    });
+  });
+
+  describe('multiple-choice questions', () => {
+    const yesNoQuestion: QuizQuestion = {
+      id: 'yn',
+      type: 'yes-no',
+      prompt: 'Is this a normal heart sound?',
+      sound: { soundSet: 'normal-s1-s2', bpm: 72 },
+      answer: true,
+    };
+
+    const mixedQuiz: Quiz = {
+      id: 'mixed-quiz',
+      label: 'Mixed Quiz',
+      questions: [
+        yesNoQuestion,
+        {
+          id: 'mc',
+          type: 'multiple-choice',
+          prompt: 'Which sound is this?',
+          sound: { soundSet: 's3-gallop', bpm: 72 },
+          choices: [
+            { id: 's3', label: 'S3 gallop' },
+            { id: 's4', label: 'S4 gallop' },
+            { id: 'normal', label: 'Normal S1-S2' },
+          ],
+          answer: 's3',
+          explanation: 'The extra sound comes just after S2.',
+        },
+      ],
+    };
+
+    function startMixedQuiz(): void {
+      useUploadedQuizStore.setState({ quizzes: [mixedQuiz] });
+      render(<QuizPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Start quiz: Mixed Quiz' }));
+      clickAnswer(yesNoQuestion, true);
+      fireEvent.click(screen.getByRole('button', { name: /next question/i }));
+    }
+
+    it('shows one button per choice instead of Yes and No', () => {
+      startMixedQuiz();
+      expect(screen.getByText('Which sound is this?')).toBeDefined();
+      expect(screen.getByRole('button', { name: 'S3 gallop' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'S4 gallop' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Normal S1-S2' })).toBeDefined();
+      expect(screen.queryByRole('button', { name: 'Yes' })).toBeNull();
+    });
+
+    it('marks the correct choice and names it in the feedback', () => {
+      startMixedQuiz();
+      fireEvent.click(screen.getByRole('button', { name: 'S3 gallop' }));
+      expect(screen.getByText('Correct')).toBeDefined();
+      expect(screen.getByText('The answer is S3 gallop.')).toBeDefined();
+    });
+
+    it('names the correct choice after a wrong answer', () => {
+      startMixedQuiz();
+      fireEvent.click(screen.getByRole('button', { name: 'S4 gallop' }));
+      expect(screen.getByText('Not quite')).toBeDefined();
+      expect(screen.getByText('The answer is S3 gallop.')).toBeDefined();
+    });
+
+    it('shows choice labels in the results and in the saved attempt', () => {
+      startMixedQuiz();
+      fireEvent.click(screen.getByRole('button', { name: 'S4 gallop' }));
+      fireEvent.click(screen.getByRole('button', { name: /see results/i }));
+
+      expect(screen.getByText('Your answer: S4 gallop')).toBeDefined();
+      expect(screen.getByText('Correct answer: S3 gallop')).toBeDefined();
+
+      // The review must still show labels after the quiz itself is removed.
+      fireEvent.click(screen.getByRole('button', { name: /back to quizzes/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Remove uploaded quiz: Mixed Quiz' }));
+      fireEvent.click(screen.getByRole('button', { name: /review attempt: mixed quiz/i }));
+
+      expect(screen.getByText('Your answer: S4 gallop')).toBeDefined();
+      expect(screen.getByText('Correct answer: S3 gallop')).toBeDefined();
     });
   });
 });

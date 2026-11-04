@@ -91,4 +91,30 @@ describe('quizHistoryStore', () => {
 
     expect(useQuizHistoryStore.getState().attempts).toEqual([]);
   });
+
+  it('restores a multiple-choice attempt with its choice labels', async () => {
+    const attempt: QuizAttempt = {
+      ...makeAttempt(7),
+      answers: [
+        {
+          questionId: 'mc',
+          prompt: 'Which sound is this?',
+          selected: 's4',
+          correctAnswer: 's3',
+          choices: [
+            { id: 's3', label: 'S3 gallop' },
+            { id: 's4', label: 'S4 gallop' },
+          ],
+        },
+      ],
+    };
+    localStorage.setItem(
+      QUIZ_HISTORY_STORAGE_KEY,
+      JSON.stringify({ state: { attempts: [attempt] }, version: 1 }),
+    );
+
+    await useQuizHistoryStore.persist.rehydrate();
+
+    expect(useQuizHistoryStore.getState().attempts).toEqual([attempt]);
+  });
 });

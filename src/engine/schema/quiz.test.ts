@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { QuizSchema, QuizSoundSchema, YesNoQuestionSchema } from './quiz';
+import {
+  MultipleChoiceQuestionSchema,
+  QuizSchema,
+  QuizSoundSchema,
+  YesNoQuestionSchema,
+} from './quiz';
 
 const validQuestion = {
   id: 's3-present',
@@ -69,6 +74,61 @@ describe('Quiz Schemas', () => {
         id: 'heart-sounds',
         label: 'Heart Sounds',
         questions: [],
+      });
+      expect(parsed.success).toBe(false);
+    });
+  });
+
+  describe('MultipleChoiceQuestionSchema', () => {
+    const mcq = {
+      id: 'name-the-gallop',
+      type: 'multiple-choice',
+      prompt: 'Which sound is this?',
+      sound: { soundSet: 's3-gallop' },
+      choices: [
+        { id: 's3', label: 'S3 gallop' },
+        { id: 's4', label: 'S4 gallop' },
+      ],
+      answer: 's3',
+    };
+
+    it('accepts a valid multiple-choice question', () => {
+      expect(MultipleChoiceQuestionSchema.safeParse(mcq).success).toBe(true);
+    });
+
+    it('rejects fewer than 2 or more than 6 choices', () => {
+      const choice = { id: 'c', label: 'Choice' };
+      expect(MultipleChoiceQuestionSchema.safeParse({ ...mcq, choices: [choice] }).success).toBe(
+        false,
+      );
+      const seven = Array.from({ length: 7 }, (_, i) => ({ id: `c${String(i)}`, label: 'C' }));
+      expect(MultipleChoiceQuestionSchema.safeParse({ ...mcq, choices: seven }).success).toBe(
+        false,
+      );
+    });
+
+    it('rejects an empty choice label', () => {
+      const choices = [
+        { id: 's3', label: '' },
+        { id: 's4', label: 'S4 gallop' },
+      ];
+      expect(MultipleChoiceQuestionSchema.safeParse({ ...mcq, choices }).success).toBe(false);
+    });
+
+    it('lets a quiz mix yes-no and multiple-choice questions', () => {
+      const parsed = QuizSchema.safeParse({
+        id: 'mixed',
+        label: 'Mixed',
+        questions: [validQuestion, mcq],
+      });
+      expect(parsed.success).toBe(true);
+    });
+
+    it('rejects an unknown question type in a quiz', () => {
+      const parsed = QuizSchema.safeParse({
+        id: 'mixed',
+        label: 'Mixed',
+        questions: [{ ...validQuestion, type: 'free-text' }],
       });
       expect(parsed.success).toBe(false);
     });

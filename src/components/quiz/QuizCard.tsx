@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Quiz } from '../../engine/schema';
+import type { Quiz } from '../../store';
 
 interface QuizCardProps {
   quiz: Quiz;
