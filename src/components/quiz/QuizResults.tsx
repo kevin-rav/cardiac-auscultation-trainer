@@ -31,6 +31,7 @@ export function QuizResults({ answers, onRestart }: QuizResultsProps) {
     selected: answers[q.id],
     correctAnswer: q.answer,
     explanation: q.explanation,
+    choices: q.type === 'multiple-choice' ? q.choices : undefined,
   }));
 
   const total = items.length;

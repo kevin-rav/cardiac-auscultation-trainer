@@ -9,7 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getCurrentQuestion, isAnswerCorrect, useQuizStore, type QuizAnswer } from '../../store';
+import {
+  formatAnswer,
+  getCurrentQuestion,
+  isAnswerCorrect,
+  useQuizStore,
+  type QuizAnswer,
+} from '../../store';
 
 interface QuizQuestionProps {
   /** Called once per question with the learner's selected answer. */
@@ -62,6 +68,13 @@ export function QuizQuestion({ onRecord, onFinish }: QuizQuestionProps) {
   };
 
   const answeredCount = questionIndex + (answered ? 1 : 0);
+  const choices = question.type === 'multiple-choice' ? question.choices : undefined;
+  const options: { value: QuizAnswer; label: string }[] = choices
+    ? choices.map((c) => ({ value: c.id, label: c.label }))
+    : [
+        { value: true, label: 'Yes' },
+        { value: false, label: 'No' },
+      ];
 
   return (
     <div className="space-y-4">
@@ -117,19 +130,19 @@ export function QuizQuestion({ onRecord, onFinish }: QuizQuestionProps) {
             </p>
           )}
 
-          <div className="flex gap-3">
-            {([true, false] as const).map((choice) => (
+          <div className={choices ? 'grid gap-2 sm:grid-cols-2' : 'flex gap-3'}>
+            {options.map((option) => (
               <Button
-                key={String(choice)}
+                key={String(option.value)}
                 type="button"
                 variant="outline"
-                className={`h-11 flex-1 text-base ${optionStyle(choice)}`}
-                aria-pressed={selectedAnswer === choice}
+                className={`h-11 flex-1 text-base ${optionStyle(option.value)}`}
+                aria-pressed={selectedAnswer === option.value}
                 onClick={() => {
-                  handleAnswer(choice);
+                  handleAnswer(option.value);
                 }}
               >
-                {choice ? 'Yes' : 'No'}
+                {option.label}
               </Button>
             ))}
           </div>
@@ -149,7 +162,7 @@ export function QuizQuestion({ onRecord, onFinish }: QuizQuestionProps) {
                   )}
                   {correct === true ? 'Correct' : 'Not quite'}
                 </p>
-                <p className="text-sm">The answer is {question.answer ? 'Yes' : 'No'}.</p>
+                <p className="text-sm">The answer is {formatAnswer(question.answer, choices)}.</p>
                 {question.explanation !== undefined && (
                   <p className="text-sm text-muted-foreground">{question.explanation}</p>
                 )}

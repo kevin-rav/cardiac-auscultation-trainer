@@ -57,6 +57,7 @@ export function QuizPage() {
               selected,
               correctAnswer: q.answer,
               explanation: q.explanation,
+              ...(q.type === 'multiple-choice' ? { choices: q.choices } : {}),
             },
           ];
     });

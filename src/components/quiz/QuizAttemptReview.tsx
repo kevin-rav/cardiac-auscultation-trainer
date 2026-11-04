@@ -24,6 +24,7 @@ export function QuizAttemptReview({ attempt, onBack }: QuizAttemptReviewProps) {
     selected: a.selected,
     correctAnswer: a.correctAnswer,
     explanation: a.explanation,
+    choices: a.choices,
   }));
   const percent = Math.round((attempt.score / attempt.total) * 100);
 

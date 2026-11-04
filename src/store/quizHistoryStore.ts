@@ -28,6 +28,8 @@ export const QuizAttemptSchema = z.object({
       selected: z.union([z.boolean(), z.string()]),
       correctAnswer: z.union([z.boolean(), z.string()]),
       explanation: z.string().optional(),
+      /** Copied for multiple-choice questions so answers still show their labels. */
+      choices: z.array(z.object({ id: z.string(), label: z.string() })).optional(),
     }),
   ),
 });

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { CardiacAudioPlayer } from '../audio';
-import type { Quiz, QuizAnswer, QuizQuestion, SoundSet } from '../engine/schema';
+import type { Quiz, QuizAnswer, QuizChoice, QuizQuestion, SoundSet } from '../engine/schema';
 import { manifest, quizzesRecord, soundSetsRecord } from '../data';
 import { useUploadedQuizStore } from './uploadedQuizStore';
 
@@ -34,6 +34,12 @@ export function isAnswerCorrect(state: QuizState): boolean | null {
   const question = getCurrentQuestion(state);
   if (!question || state.selectedAnswer === null) return null;
   return state.selectedAnswer === question.answer;
+}
+
+/** Display text for an answer: Yes or No, or the matching choice's label. */
+export function formatAnswer(value: QuizAnswer, choices?: readonly QuizChoice[]): string {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return choices?.find((c) => c.id === value)?.label ?? value;
 }
 
 /** A yes-no question takes true or false; a multiple-choice question takes one of its choice ids. */
