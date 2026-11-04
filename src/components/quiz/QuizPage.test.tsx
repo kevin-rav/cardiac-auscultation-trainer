@@ -9,6 +9,7 @@ import {
   useQuizHistoryStore,
   useQuizStore,
   useUploadedQuizStore,
+  type Quiz,
   type QuizAnswer,
   type QuizQuestion,
 } from '../../store';
@@ -306,6 +307,85 @@ describe('QuizPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove uploaded quiz: My Upload' }));
       expect(screen.queryByRole('button', { name: 'Start quiz: My Upload' })).toBeNull();
       expect(useUploadedQuizStore.getState().quizzes).toEqual([]);
+    });
+  });
+
+  describe('multiple-choice questions', () => {
+    const yesNoQuestion: QuizQuestion = {
+      id: 'yn',
+      type: 'yes-no',
+      prompt: 'Is this a normal heart sound?',
+      sound: { soundSet: 'normal-s1-s2', bpm: 72 },
+      answer: true,
+    };
+
+    const mixedQuiz: Quiz = {
+      id: 'mixed-quiz',
+      label: 'Mixed Quiz',
+      questions: [
+        yesNoQuestion,
+        {
+          id: 'mc',
+          type: 'multiple-choice',
+          prompt: 'Which sound is this?',
+          sound: { soundSet: 's3-gallop', bpm: 72 },
+          choices: [
+            { id: 's3', label: 'S3 gallop' },
+            { id: 's4', label: 'S4 gallop' },
+            { id: 'normal', label: 'Normal S1-S2' },
+          ],
+          answer: 's3',
+          explanation: 'The extra sound comes just after S2.',
+        },
+      ],
+    };
+
+    function startMixedQuiz(): void {
+      useUploadedQuizStore.setState({ quizzes: [mixedQuiz] });
+      render(<QuizPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Start quiz: Mixed Quiz' }));
+      clickAnswer(yesNoQuestion, true);
+      fireEvent.click(screen.getByRole('button', { name: /next question/i }));
+    }
+
+    it('shows one button per choice instead of Yes and No', () => {
+      startMixedQuiz();
+      expect(screen.getByText('Which sound is this?')).toBeDefined();
+      expect(screen.getByRole('button', { name: 'S3 gallop' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'S4 gallop' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Normal S1-S2' })).toBeDefined();
+      expect(screen.queryByRole('button', { name: 'Yes' })).toBeNull();
+    });
+
+    it('marks the correct choice and names it in the feedback', () => {
+      startMixedQuiz();
+      fireEvent.click(screen.getByRole('button', { name: 'S3 gallop' }));
+      expect(screen.getByText('Correct')).toBeDefined();
+      expect(screen.getByText('The answer is S3 gallop.')).toBeDefined();
+    });
+
+    it('names the correct choice after a wrong answer', () => {
+      startMixedQuiz();
+      fireEvent.click(screen.getByRole('button', { name: 'S4 gallop' }));
+      expect(screen.getByText('Not quite')).toBeDefined();
+      expect(screen.getByText('The answer is S3 gallop.')).toBeDefined();
+    });
+
+    it('shows choice labels in the results and in the saved attempt', () => {
+      startMixedQuiz();
+      fireEvent.click(screen.getByRole('button', { name: 'S4 gallop' }));
+      fireEvent.click(screen.getByRole('button', { name: /see results/i }));
+
+      expect(screen.getByText('Your answer: S4 gallop')).toBeDefined();
+      expect(screen.getByText('Correct answer: S3 gallop')).toBeDefined();
+
+      // The review must still show labels after the quiz itself is removed.
+      fireEvent.click(screen.getByRole('button', { name: /back to quizzes/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Remove uploaded quiz: Mixed Quiz' }));
+      fireEvent.click(screen.getByRole('button', { name: /review attempt: mixed quiz/i }));
+
+      expect(screen.getByText('Your answer: S4 gallop')).toBeDefined();
+      expect(screen.getByText('Correct answer: S3 gallop')).toBeDefined();
     });
   });
 });

@@ -3,6 +3,7 @@ import type { CardiacAudioPlayer } from '../audio';
 import type { Quiz } from '../engine/schema';
 import { PRESET_QUIZZES, soundSetsRecord } from '../data';
 import {
+  formatAnswer,
   getCurrentQuestion,
   isAnswerCorrect,
   setQuizPlayerInstance,
@@ -310,6 +311,23 @@ describe('QuizStore', () => {
       startFixture();
       useQuizStore.getState().answer('s3');
       expect(useQuizStore.getState().selectedAnswer).toBeNull();
+    });
+  });
+
+  describe('formatAnswer', () => {
+    const choices = [
+      { id: 's3', label: 'S3 gallop' },
+      { id: 's4', label: 'S4 gallop' },
+    ];
+
+    it.each([
+      [true, undefined, 'Yes'],
+      [false, undefined, 'No'],
+      ['s4', choices, 'S4 gallop'],
+      ['missing', choices, 'missing'],
+      ['s3', undefined, 's3'],
+    ] as const)('formats %s as %s', (value, choiceList, expected) => {
+      expect(formatAnswer(value, choiceList)).toBe(expected);
     });
   });
 });
