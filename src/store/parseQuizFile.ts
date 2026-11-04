@@ -30,3 +30,4 @@ export function parseQuizFile(text: string): QuizValidationResult {
   }
   return result;
 }
+export type { QuizIssue } from '../engine/quizValidation';
