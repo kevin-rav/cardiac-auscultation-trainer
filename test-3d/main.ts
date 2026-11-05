@@ -19,6 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const infoSignificance = document.getElementById('infoSignificance');
   const infoCondition = document.getElementById('infoCondition');
 
+  // Pin Drop HUD elements
+  const pinDropHud = document.getElementById('pinDropHud');
+  const pinModelCoords = document.getElementById('pinModelCoords');
+  const pinNormalCoords = document.getElementById('pinNormalCoords');
+  const btnPinClear = document.getElementById('btnPinClear');
+  const btnPinCopy = document.getElementById('btnPinCopy');
+  const btnTogglePinDrop = document.getElementById('btnTogglePinDrop');
+
   const updateInfoCard = (point: AuscultationPointDefinition): void => {
     if (infoTitle) infoTitle.textContent = point.name;
     if (infoTag) {
@@ -49,8 +57,24 @@ document.addEventListener('DOMContentLoaded', () => {
     enableAutoRotate: false,
     lockRotation: false,
     isDarkMode: true,
+    enablePinDrop: true,
     onPointSelected: (point) => {
       updateInfoCard(point);
+    },
+    onPinDrop: (data) => {
+      if (pinDropHud) {
+        pinDropHud.style.display = 'block';
+      }
+      if (pinModelCoords) {
+        pinModelCoords.textContent = `[${data.modelPosition.join(', ')}]`;
+      }
+      if (pinNormalCoords) {
+        pinNormalCoords.textContent = `[${data.normal.join(', ')}]`;
+      }
+      if (btnPinCopy) {
+        btnPinCopy.textContent = 'Copy Model Coordinates';
+        btnPinCopy.classList.remove('copied');
+      }
     },
     onLoadingProgress: (percent) => {
       if (loadingProgress) {
@@ -92,6 +116,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Wire up utility control buttons
+  btnTogglePinDrop?.addEventListener('click', () => {
+    const isEnabled = viewer.togglePinDrop();
+    btnTogglePinDrop.classList.toggle('active', isEnabled);
+  });
+
+  btnPinClear?.addEventListener('click', () => {
+    viewer.clearPin();
+    if (pinDropHud) {
+      pinDropHud.style.display = 'none';
+    }
+  });
+
+  if (btnPinCopy) {
+    btnPinCopy.addEventListener('click', () => {
+      const lastPin = viewer.getLastPinDrop();
+      if (!lastPin) return;
+      const copyText = `[${lastPin.modelPosition.join(', ')}]`;
+      navigator.clipboard
+        .writeText(copyText)
+        .then(() => {
+          btnPinCopy.textContent = 'Copied!';
+          btnPinCopy.classList.add('copied');
+          setTimeout(() => {
+            btnPinCopy.textContent = 'Copy Model Coordinates';
+            btnPinCopy.classList.remove('copied');
+          }, 2000);
+        })
+        .catch((err: unknown) => {
+          console.warn('Clipboard copy failed:', err);
+        });
+    });
+  }
+
   const btnReset = document.getElementById('btnResetCamera');
   btnReset?.addEventListener('click', () => {
     viewer.resetCamera();
@@ -149,6 +206,12 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'w':
         btnWireframe?.click();
+        break;
+      case 'd':
+        btnTogglePinDrop?.click();
+        break;
+      case 'c':
+        btnPinClear?.click();
         break;
     }
   });
