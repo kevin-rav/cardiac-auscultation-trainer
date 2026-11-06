@@ -8,6 +8,7 @@ interface NavigationProps {
 export function Navigation({ currentPath, onNavigate }: NavigationProps) {
   const isTuner = currentPath.startsWith('/audio-tuner');
   const isQuiz = currentPath.startsWith('/quiz');
+  const isBuilder = currentPath.startsWith('/builder');
 
   return (
     <nav className="flex items-center justify-between border-b border-border bg-card px-6 py-3">
@@ -17,7 +18,7 @@ export function Navigation({ currentPath, onNavigate }: NavigationProps) {
       <div className="flex items-center gap-2">
         <Button
           type="button"
-          variant={!isTuner && !isQuiz ? 'default' : 'ghost'}
+          variant={!isTuner && !isQuiz && !isBuilder ? 'default' : 'ghost'}
           size="sm"
           onClick={() => {
             onNavigate('/');
@@ -47,6 +48,17 @@ export function Navigation({ currentPath, onNavigate }: NavigationProps) {
           data-testid="nav-quiz"
         >
           Quiz
+        </Button>
+        <Button
+          type="button"
+          variant={isBuilder ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => {
+            onNavigate('/builder');
+          }}
+          data-testid="nav-builder"
+        >
+          Quiz Builder
         </Button>
         <Button type="button" variant="ghost" size="sm" asChild data-testid="nav-3d">
           <a href={`${import.meta.env.BASE_URL}test-3d/`}>3D Model</a>
