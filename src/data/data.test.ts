@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ManifestSchema, SoundSetSchema } from '../engine/schema';
-import { manifest, PRESET_SOUND_SETS, soundSetsRecord } from './index';
+import { validateQuiz } from '../engine/quizValidation';
+import {
+  manifest,
+  PRESET_QUIZZES,
+  PRESET_SOUND_SETS,
+  SOUND_SET_IDS,
+  soundSetsRecord,
+} from './index';
 
 describe('Data files schema validation', () => {
   it('validates manifest against ManifestSchema', () => {
@@ -44,6 +51,27 @@ describe('Data files schema validation', () => {
           `Manifest sample "${event.sample}" has an empty URL`,
         ).toBeGreaterThan(0);
       }
+    }
+  });
+});
+
+describe('Quiz data files', () => {
+  it('loads at least one quiz', () => {
+    expect(PRESET_QUIZZES.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gives every quiz a unique id', () => {
+    const ids = PRESET_QUIZZES.map((quiz) => quiz.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('passes validateQuiz with no errors or warnings', () => {
+    // Preset quizzes are held to the warnings too: every quiz needs both yes
+    // and no answers so it can't be passed without listening.
+    for (const quiz of PRESET_QUIZZES) {
+      const result = validateQuiz(quiz, SOUND_SET_IDS);
+      const issues = result.success ? result.warnings : result.errors;
+      expect(issues, `Quiz "${quiz.id}"`).toEqual([]);
     }
   });
 });

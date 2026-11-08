@@ -1,5 +1,14 @@
 import type { Manifest } from '../engine/schema';
 
+/**
+ * Manifest URLs are root-relative ("/sounds/s1.wav"). Serve them from Vite's
+ * base URL so they also resolve when the app is deployed under a subpath, as
+ * on GitHub Pages. Other URLs (blob:, https:) are returned unchanged.
+ */
+export function resolveSampleUrl(url: string, baseUrl: string = import.meta.env.BASE_URL): string {
+  return url.startsWith('/') ? `${baseUrl}${url.slice(1)}` : url;
+}
+
 export class SampleLoader {
   private readonly bufferCache = new Map<string, AudioBuffer>();
   private readonly inFlightLoads = new Map<string, Promise<AudioBuffer>>();
@@ -29,11 +38,12 @@ export class SampleLoader {
     }
 
     const loadPromise = (async () => {
+      const resolvedUrl = resolveSampleUrl(url);
       try {
-        const response = await fetch(url);
+        const response = await fetch(resolvedUrl);
         if (!response.ok) {
           throw new Error(
-            `Failed to load audio sample "${id}" from ${url}: ${response.status.toString()} ${response.statusText}`,
+            `Failed to load audio sample "${id}" from ${resolvedUrl}: ${response.status.toString()} ${response.statusText}`,
           );
         }
         const arrayBuffer = await response.arrayBuffer();
