@@ -5,6 +5,7 @@ import type {
   AuscultationPointDefinition,
   AuscultationPointId,
   AuscultationPointInstance,
+  PinDropData,
   TorsoViewerOptions,
 } from './types.ts';
 
@@ -87,6 +88,16 @@ export class Torso3DViewer {
   private readonly raycaster = new THREE.Raycaster();
   private readonly mouse = new THREE.Vector2();
 
+  // Pin drop properties
+  private isPinDropEnabledState = true;
+  private pinMarkerGroup: THREE.Group | null = null;
+  private pinSphere: THREE.Mesh | null = null;
+  private pinCore: THREE.Mesh | null = null;
+  private pinRing: THREE.Mesh | null = null;
+  private lastPinDrop: PinDropData | null = null;
+  private pointerDownPos: { x: number; y: number } | null = null;
+  private pointerDownTime = 0;
+
   private animationFrameId: number | null = null;
   private isDestroyed = false;
 
@@ -107,6 +118,9 @@ export class Torso3DViewer {
     }
     if (typeof options.lockRotation === 'boolean') {
       this.isRotationLocked = options.lockRotation;
+    }
+    if (typeof options.enablePinDrop === 'boolean') {
+      this.isPinDropEnabledState = options.enablePinDrop;
     }
 
     this.initScene();
@@ -157,6 +171,45 @@ export class Torso3DViewer {
 
     this.torsoGroup = new THREE.Group();
     this.scene.add(this.torsoGroup);
+    this.initPinMarker();
+  }
+
+  private initPinMarker(): void {
+    this.pinMarkerGroup = new THREE.Group();
+    this.pinMarkerGroup.name = 'pinDropMarker';
+    this.pinMarkerGroup.visible = false;
+
+    // Glowing red sphere
+    const sphereGeo = new THREE.SphereGeometry(0.045, 24, 24);
+    const sphereMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      depthTest: true,
+    });
+    this.pinSphere = new THREE.Mesh(sphereGeo, sphereMat);
+    this.pinMarkerGroup.add(this.pinSphere);
+
+    // Inner bright white core dot
+    const coreGeo = new THREE.SphereGeometry(0.018, 16, 16);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      depthTest: true,
+    });
+    this.pinCore = new THREE.Mesh(coreGeo, coreMat);
+    this.pinMarkerGroup.add(this.pinCore);
+
+    // Outer pulsating ring indicator
+    const ringGeo = new THREE.RingGeometry(0.065, 0.095, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xef4444,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+    });
+    this.pinRing = new THREE.Mesh(ringGeo, ringMat);
+    this.pinRing.position.z = 0.01;
+    this.pinMarkerGroup.add(this.pinRing);
+
+    this.torsoGroup.add(this.pinMarkerGroup);
   }
 
   private initLights(): void {
@@ -465,6 +518,13 @@ export class Torso3DViewer {
         inst.markerRing.quaternion.copy(this.camera.quaternion);
       });
 
+      // Animate dropped pin marker if visible
+      if (this.pinMarkerGroup?.visible && this.pinRing) {
+        const pinPulse = Math.sin(timestamp * 0.005) * 0.18 + 1.0;
+        this.pinRing.scale.setScalar(pinPulse);
+        this.pinRing.quaternion.copy(this.camera.quaternion);
+      }
+
       this.updateButtonPositions();
       this.renderer.render(this.scene, this.camera);
     };
@@ -477,6 +537,7 @@ export class Torso3DViewer {
 
     const dom = this.renderer.domElement;
     dom.addEventListener('pointerdown', this.handlePointerDown);
+    dom.addEventListener('pointerup', this.handlePointerUp);
     dom.addEventListener('pointermove', this.handlePointerMove);
   }
 
@@ -492,6 +553,8 @@ export class Torso3DViewer {
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
     const rect = this.renderer.domElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -508,31 +571,226 @@ export class Torso3DViewer {
         this.renderer.domElement.style.cursor = 'pointer';
         this.updateMarkerVisuals();
       }
-    } else if (this.hoveredPointId !== null) {
+      return;
+    }
+
+    if (this.hoveredPointId !== null) {
       this.hoveredPointId = null;
-      this.renderer.domElement.style.cursor = 'default';
       this.updateMarkerVisuals();
+    }
+
+    if (this.isPinDropEnabledState && this.modelRoot) {
+      const modelHits = this.raycaster.intersectObject(this.modelRoot, true);
+      const hasMeshHit = modelHits.some((h) => h.object instanceof THREE.Mesh);
+      this.renderer.domElement.style.cursor = hasMeshHit ? 'crosshair' : 'default';
+    } else {
+      this.renderer.domElement.style.cursor = 'default';
     }
   };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
+    this.pointerDownPos = { x: event.clientX, y: event.clientY };
+    this.pointerDownTime = performance.now();
+  };
+
+  private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (!this.pointerDownPos) return;
+
+    const dx = event.clientX - this.pointerDownPos.x;
+    const dy = event.clientY - this.pointerDownPos.y;
+    const distance = Math.hypot(dx, dy);
+    const elapsed = performance.now() - this.pointerDownTime;
+    this.pointerDownPos = null;
+
+    // Distinguish click from camera rotation drag
+    if (distance > 6 || elapsed > 600) {
+      return;
+    }
+
     const rect = this.renderer.domElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
+    // 1. Check if an auscultation marker was clicked
     const markerMeshes = Array.from(this.pointInstances.values()).map((p) => p.markerSphere);
-    const intersects = this.raycaster.intersectObjects(markerMeshes, false);
+    const markerIntersects = this.raycaster.intersectObjects(markerMeshes, false);
 
-    if (intersects.length > 0 && intersects[0]?.object.userData) {
-      const hitId = (intersects[0].object.userData as { auscultationPointId?: AuscultationPointId })
-        .auscultationPointId;
+    if (markerIntersects.length > 0 && markerIntersects[0]?.object.userData) {
+      const hitId = (
+        markerIntersects[0].object.userData as { auscultationPointId?: AuscultationPointId }
+      ).auscultationPointId;
       if (hitId) {
         this.selectAuscultationPoint(hitId);
+        return;
       }
     }
+
+    // 2. If pin-drop is enabled, raycast against torso model
+    if (this.isPinDropEnabledState && this.modelRoot) {
+      this.dropPinAtScreen(event.clientX, event.clientY);
+    }
   };
+
+  private applyPinDrop(hit: THREE.Intersection): PinDropData {
+    if (!this.modelRoot) {
+      throw new Error('Cannot drop pin: modelRoot is null');
+    }
+
+    this.modelRoot.updateMatrixWorld(true);
+    this.torsoGroup.updateMatrixWorld(true);
+
+    const worldPoint = hit.point.clone();
+    const modelPoint = this.modelRoot.worldToLocal(worldPoint.clone());
+    const torsoPoint = this.torsoGroup.worldToLocal(worldPoint.clone());
+
+    const hitNormal = hit.normal ? hit.normal.clone().normalize() : new THREE.Vector3(0, 0, 1);
+
+    const pinData: PinDropData = {
+      modelPosition: [
+        Number(modelPoint.x.toFixed(4)),
+        Number(modelPoint.y.toFixed(4)),
+        Number(modelPoint.z.toFixed(4)),
+      ],
+      torsoPosition: [
+        Number(torsoPoint.x.toFixed(4)),
+        Number(torsoPoint.y.toFixed(4)),
+        Number(torsoPoint.z.toFixed(4)),
+      ],
+      worldPosition: [
+        Number(worldPoint.x.toFixed(4)),
+        Number(worldPoint.y.toFixed(4)),
+        Number(worldPoint.z.toFixed(4)),
+      ],
+      normal: [
+        Number(hitNormal.x.toFixed(4)),
+        Number(hitNormal.y.toFixed(4)),
+        Number(hitNormal.z.toFixed(4)),
+      ],
+      distance: Number(hit.distance.toFixed(4)),
+    };
+
+    if (this.pinMarkerGroup) {
+      // Offset slightly along surface normal to eliminate mesh clipping
+      const offsetWorldPoint = worldPoint.clone().addScaledVector(hitNormal, 0.015);
+      const offsetTorsoPoint = this.torsoGroup.worldToLocal(offsetWorldPoint);
+      this.pinMarkerGroup.position.copy(offsetTorsoPoint);
+      this.pinMarkerGroup.visible = true;
+    }
+
+    this.lastPinDrop = pinData;
+    this.reportPinDrop(pinData);
+    this.options.onPinDrop?.(pinData);
+
+    return pinData;
+  }
+
+  public dropPinAtScreen(clientX: number, clientY: number): PinDropData | null {
+    if (!this.modelRoot) return null;
+
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+
+    const mouse = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+
+    this.raycaster.setFromCamera(mouse, this.camera);
+    const hits = this.raycaster.intersectObject(this.modelRoot, true);
+    const meshHit = hits.find((h) => h.object instanceof THREE.Mesh);
+
+    if (!meshHit) return null;
+
+    return this.applyPinDrop(meshHit);
+  }
+
+  public dropPinAtCoordinates(modelX: number, modelY: number, modelZ: number): PinDropData | null {
+    if (!this.modelRoot) return null;
+
+    this.modelRoot.updateMatrixWorld(true);
+    this.torsoGroup.updateMatrixWorld(true);
+
+    const modelPos = new THREE.Vector3(modelX, modelY, modelZ);
+    const worldPos = modelPos.clone();
+    this.modelRoot.localToWorld(worldPos);
+
+    const torsoPos = worldPos.clone();
+    this.torsoGroup.worldToLocal(torsoPos);
+
+    const pinData: PinDropData = {
+      modelPosition: [
+        Number(modelPos.x.toFixed(4)),
+        Number(modelPos.y.toFixed(4)),
+        Number(modelPos.z.toFixed(4)),
+      ],
+      torsoPosition: [
+        Number(torsoPos.x.toFixed(4)),
+        Number(torsoPos.y.toFixed(4)),
+        Number(torsoPos.z.toFixed(4)),
+      ],
+      worldPosition: [
+        Number(worldPos.x.toFixed(4)),
+        Number(worldPos.y.toFixed(4)),
+        Number(worldPos.z.toFixed(4)),
+      ],
+      normal: [0, 0, 1],
+      distance: 0,
+    };
+
+    if (this.pinMarkerGroup) {
+      this.pinMarkerGroup.position.copy(torsoPos);
+      this.pinMarkerGroup.visible = true;
+    }
+    this.lastPinDrop = pinData;
+
+    this.reportPinDrop(pinData);
+    this.options.onPinDrop?.(pinData);
+    return pinData;
+  }
+
+  private reportPinDrop(pinData: PinDropData): void {
+    console.group('%c📍 Model Pin Dropped', 'color: #ef4444; font-weight: bold; font-size: 13px;');
+    console.log('Model Coordinates (Local):', {
+      x: pinData.modelPosition[0],
+      y: pinData.modelPosition[1],
+      z: pinData.modelPosition[2],
+    });
+    console.log(
+      `Copy-paste array: [${String(pinData.modelPosition[0])}, ${String(pinData.modelPosition[1])}, ${String(pinData.modelPosition[2])}]`,
+    );
+    console.log('Torso Group Coordinates:', pinData.torsoPosition);
+    console.log('World Coordinates:', pinData.worldPosition);
+    console.log('Surface Normal:', pinData.normal);
+    console.log('Raycast Distance:', pinData.distance);
+    console.groupEnd();
+  }
+
+  public clearPin(): void {
+    if (this.pinMarkerGroup) {
+      this.pinMarkerGroup.visible = false;
+    }
+    this.lastPinDrop = null;
+  }
+
+  public getLastPinDrop(): PinDropData | null {
+    return this.lastPinDrop;
+  }
+
+  public togglePinDrop(enabled?: boolean): boolean {
+    if (typeof enabled === 'boolean') {
+      this.isPinDropEnabledState = enabled;
+    } else {
+      this.isPinDropEnabledState = !this.isPinDropEnabledState;
+    }
+    return this.isPinDropEnabledState;
+  }
+
+  public isPinDropEnabled(): boolean {
+    return this.isPinDropEnabledState;
+  }
 
   // Public control methods
   public resetCamera(): void {
@@ -593,7 +851,21 @@ export class Torso3DViewer {
 
     window.removeEventListener('resize', this.handleResize);
     this.renderer.domElement.removeEventListener('pointerdown', this.handlePointerDown);
+    this.renderer.domElement.removeEventListener('pointerup', this.handlePointerUp);
     this.renderer.domElement.removeEventListener('pointermove', this.handlePointerMove);
+
+    if (this.pinSphere) {
+      this.pinSphere.geometry.dispose();
+      (this.pinSphere.material as THREE.Material).dispose();
+    }
+    if (this.pinCore) {
+      this.pinCore.geometry.dispose();
+      (this.pinCore.material as THREE.Material).dispose();
+    }
+    if (this.pinRing) {
+      this.pinRing.geometry.dispose();
+      (this.pinRing.material as THREE.Material).dispose();
+    }
 
     this.controls.dispose();
     this.renderer.dispose();

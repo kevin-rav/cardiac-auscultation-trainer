@@ -72,11 +72,29 @@ npm run build
 
 ---
 
+## 📍 Red-Dot 'Pin-Drop' Raycasting Methodology
+
+The 3D viewer supports interactive **pin-drop raycasting** directly on the anatomical torso mesh:
+
+1. **Raycasting onto Mesh**: Clicking or tapping on the torso mesh casts a ray from the camera through screen coordinates and calculates the precise surface hit point, normal vector, and distance.
+2. **Surface Pin Placement**: A high-visibility red dot with a central white core and camera-facing pulsating outer ring is dropped at the hit point, slightly offset along the surface normal to prevent mesh clipping / z-fighting. The pin is parented to the torso group, keeping it locked to the model during rotations.
+3. **Console Reporting**: The drop immediately logs the exact **local model coordinates** to DevTools console in a formatted group:
+   - Model Coordinates (local GLTF space: `{ x, y, z }`)
+   - Copy-paste array format (e.g. `[x, y, z]` for landmark definitions)
+   - Torso Group Coordinates (normalized space)
+   - World Coordinates & Surface Normal vector
+4. **On-Screen Coordinate HUD**: Displays the current coordinates with a one-click copy button and clear button.
+5. **Click vs. Drag Discrimination**: Only deliberate clicks (< 6px pointer movement) drop a pin, preserving smooth OrbitControls camera rotation and panning without accidental drops.
+
+---
+
 ## ⌨️ Keyboard Shortcuts
 
 - `1` or `A`: Select Aortic Area
 - `2` or `P`: Select Pulmonic Area
 - `3` or `T`: Select Tricuspid Area
 - `4` or `M`: Select Mitral Area
+- `D`: Toggle Pin Drop mode
+- `C`: Clear dropped pin
 - `R`: Reset camera view
 - `W`: Toggle wireframe mesh mode

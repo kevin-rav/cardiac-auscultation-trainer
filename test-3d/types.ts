@@ -24,14 +24,24 @@ export interface AuscultationPointInstance {
   screenPosition: { x: number; y: number; visible: boolean };
 }
 
+export interface PinDropData {
+  modelPosition: [number, number, number];
+  torsoPosition: [number, number, number];
+  worldPosition: [number, number, number];
+  normal: [number, number, number];
+  distance: number;
+}
+
 export interface TorsoViewerOptions {
   modelUrl?: string;
   initialPoint?: AuscultationPointId;
   enableAutoRotate?: boolean;
   lockRotation?: boolean;
   isDarkMode?: boolean;
+  enablePinDrop?: boolean;
   onPointSelected?: (point: AuscultationPointDefinition) => void;
   onLoadingProgress?: (progress: number) => void;
   onModelLoaded?: () => void;
   onError?: (error: Error) => void;
+  onPinDrop?: (data: PinDropData) => void;
 }
