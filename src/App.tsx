@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Navigation, AudioTuner, QuizPage } from './components';
+import { Navigation, AudioTuner, QuizBuilderPage, QuizPage } from './components';
 
 // The app is served under a subpath on GitHub Pages, so routes are kept
 // relative to Vite's base URL.
@@ -47,6 +47,7 @@ export function App() {
         window.location.search.includes('tool=audio-tuner')));
 
   const isQuizRoute = currentPath.startsWith('/quiz');
+  const isBuilderRoute = currentPath.startsWith('/builder');
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -56,6 +57,8 @@ export function App() {
         <AudioTuner />
       ) : isQuizRoute ? (
         <QuizPage />
+      ) : isBuilderRoute ? (
+        <QuizBuilderPage />
       ) : (
         <main className="flex flex-1 items-center justify-center p-6">
           <Card className="w-full max-w-lg">
