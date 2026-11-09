@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { locationsRecord, spatialConfig } from '../src/data';
 import type {
   AuscultationPointDefinition,
   AuscultationPointId,
@@ -13,54 +14,62 @@ import type {
 // work under the GitHub Pages subpath as well as at / in dev.
 export const DEFAULT_MODEL_URL = `${import.meta.env.BASE_URL}Auscultation_Torso_v1.glb`;
 
+function getLandmarkPosition(
+  id: AuscultationPointId,
+  fallback: [number, number, number],
+): [number, number, number] {
+  const lm = spatialConfig.landmarks.find((l) => l.id === id);
+  return lm ? [...lm.position] : fallback;
+}
+
 export const AUSCULTATION_POINTS: AuscultationPointDefinition[] = [
   {
     id: 'aortic',
-    name: 'Aortic Area',
+    name: locationsRecord.aortic.label,
     anchorNodeName: 'ANCHOR_AORTIC_VALVE',
-    landmark: '2nd Intercostal Space, Right Sternal Border',
+    landmark: locationsRecord.aortic.landmark,
     soundDescription: 'S2 louder than S1 (closure of aortic valve A2)',
     clinicalSignificance: 'Best site to detect Aortic Stenosis and Aortic Regurgitation',
     primaryCondition: 'Systolic ejection murmur of Aortic Stenosis radiates to carotids',
     color: '#ef4444',
-    defaultPosition: [-0.08, 1.442, 0.264],
+    defaultPosition: getLandmarkPosition('aortic', [-0.08, 1.442, 0.264]),
   },
   {
     id: 'pulmonic',
-    name: 'Pulmonic Area',
+    name: locationsRecord.pulmonic.label,
     anchorNodeName: 'ANCHOR_PULMONIC_VALVE',
-    landmark: '2nd Intercostal Space, Left Sternal Border',
+    landmark: locationsRecord.pulmonic.landmark,
     soundDescription: 'Physiological splitting of S2 during inspiration',
     clinicalSignificance:
       'Best site to hear Pulmonic Stenosis, Pulmonary Flow Murmur, and fixed S2 split (ASD)',
     primaryCondition: 'Systolic murmur of pulmonic valve stenosis or innocent flow',
     color: '#3b82f6',
-    defaultPosition: [0.205, 1.446, 0.278],
+    defaultPosition: getLandmarkPosition('pulmonic', [0.205, 1.446, 0.278]),
   },
   {
     id: 'tricuspid',
-    name: 'Tricuspid Area',
+    name: locationsRecord.tricuspid.label,
     anchorNodeName: 'ANCHOR_TRICUSPID_VALVE',
-    landmark: '4th - 5th Intercostal Space, Left Lower Sternal Border',
+    landmark: locationsRecord.tricuspid.landmark,
     soundDescription: 'Tricuspid valve closure (T1 component of S1)',
     clinicalSignificance:
       'Best site for Tricuspid Regurgitation (increases with inspiration / Carvallo sign) and VSD',
     primaryCondition: 'Holosystolic murmur of tricuspid regurgitation or VSD',
     color: '#10b981',
-    defaultPosition: [0.004, 1.109, 0.316],
+    defaultPosition: getLandmarkPosition('tricuspid', [0.004, 1.109, 0.316]),
   },
   {
     id: 'mitral',
-    name: 'Mitral Area (Cardiac Apex)',
+    name: locationsRecord.mitral.label,
     anchorNodeName: 'ANCHOR_MITRAL_VALVE',
-    landmark: '5th Intercostal Space, Left Midclavicular Line',
+    landmark: locationsRecord.mitral.landmark,
     soundDescription: 'S1 louder than S2 (M1 closure); point of maximal impulse (PMI)',
     clinicalSignificance:
       'Best site for Mitral Regurgitation (radiates to axilla), Mitral Stenosis, S3, and S4 gallops',
     primaryCondition:
       'Pansystolic murmur of Mitral Regurgitation; diastolic rumble of Mitral Stenosis',
     color: '#a855f7',
-    defaultPosition: [0.321, 1.023, 0.299],
+    defaultPosition: getLandmarkPosition('mitral', [0.321, 1.023, 0.299]),
   },
 ];
 
@@ -585,7 +594,7 @@ export class Torso3DViewer {
     }
 
     if (this.isDraggingStethoscope && this.isStethoscopeDragMode) {
-      this.dropPinAtScreen(event.clientX, event.clientY);
+      this.dropPinAtScreen(event.clientX, event.clientY, true);
       return;
     }
 
@@ -608,7 +617,7 @@ export class Torso3DViewer {
     this.pointerDownTime = performance.now();
 
     if (this.isStethoscopeDragMode && this.modelRoot) {
-      const pin = this.dropPinAtScreen(event.clientX, event.clientY);
+      const pin = this.dropPinAtScreen(event.clientX, event.clientY, true);
       if (pin) {
         this.isDraggingStethoscope = true;
         this.controls.enabled = false;
@@ -658,10 +667,10 @@ export class Torso3DViewer {
 
     // 2. If pin-drop is enabled, raycast against torso model
     if (this.isPinDropEnabledState && this.modelRoot) {
-      this.dropPinAtScreen(event.clientX, event.clientY);
+      this.dropPinAtScreen(event.clientX, event.clientY, false);
     }
   };
-  private applyPinDrop(hit: THREE.Intersection): PinDropData {
+  private applyPinDrop(hit: THREE.Intersection, isDrag = false): PinDropData {
     if (!this.modelRoot) {
       throw new Error('Cannot drop pin: modelRoot is null');
     }
@@ -708,14 +717,23 @@ export class Torso3DViewer {
     }
 
     this.lastPinDrop = pinData;
-    this.reportPinDrop(pinData);
-    this.options.onPinDrop?.(pinData);
-    this.options.onStethoscopeMove?.(pinData);
+    if (isDrag) {
+      this.options.onStethoscopeMove?.(pinData);
+      if (!this.options.onStethoscopeMove) {
+        this.options.onPinDrop?.(pinData);
+      }
+    } else {
+      this.reportPinDrop(pinData);
+      this.options.onPinDrop?.(pinData);
+      if (!this.options.onPinDrop) {
+        this.options.onStethoscopeMove?.(pinData);
+      }
+    }
 
     return pinData;
   }
 
-  public dropPinAtScreen(clientX: number, clientY: number): PinDropData | null {
+  public dropPinAtScreen(clientX: number, clientY: number, isDrag = false): PinDropData | null {
     if (!this.modelRoot) return null;
 
     const rect = this.renderer.domElement.getBoundingClientRect();
@@ -732,7 +750,7 @@ export class Torso3DViewer {
 
     if (!meshHit) return null;
 
-    return this.applyPinDrop(meshHit);
+    return this.applyPinDrop(meshHit, isDrag);
   }
 
   public dropPinAtCoordinates(modelX: number, modelY: number, modelZ: number): PinDropData | null {
@@ -776,7 +794,9 @@ export class Torso3DViewer {
 
     this.reportPinDrop(pinData);
     this.options.onPinDrop?.(pinData);
-    this.options.onStethoscopeMove?.(pinData);
+    if (!this.options.onPinDrop) {
+      this.options.onStethoscopeMove?.(pinData);
+    }
     return pinData;
   }
 

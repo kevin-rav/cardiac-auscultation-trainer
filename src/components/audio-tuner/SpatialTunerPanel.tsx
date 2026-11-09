@@ -3,15 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import { locationsRecord } from '@/data';
 import { downloadTextFile } from '@/lib/downloadFile';
 import { useSpatialStore, type LocationId } from '../../store';
 
-const VALVE_LABELS: Record<LocationId, { name: string; landmark: string }> = {
-  aortic: { name: 'Aortic', landmark: '2nd ICS RSB' },
-  pulmonic: { name: 'Pulmonic', landmark: '2nd ICS LSB' },
-  tricuspid: { name: 'Tricuspid', landmark: '4th-5th ICS LSB' },
-  mitral: { name: 'Mitral / Apex', landmark: '5th ICS MCL' },
-};
+const VALVE_IDS: readonly LocationId[] = ['aortic', 'pulmonic', 'tricuspid', 'mitral'];
 
 interface SliderDef {
   key:
@@ -170,8 +166,8 @@ export function SpatialTunerPanel() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {(Object.keys(VALVE_LABELS) as LocationId[]).map((id) => {
-              const { name, landmark } = VALVE_LABELS[id];
+            {VALVE_IDS.map((id) => {
+              const loc = locationsRecord[id];
               const isSelected = selectedLandmarkId === id;
               return (
                 <Button
@@ -183,8 +179,8 @@ export function SpatialTunerPanel() {
                   }}
                   data-testid={`audition-valve-${id}`}
                 >
-                  <span className="font-semibold text-sm">{name}</span>
-                  <span className="text-xs text-muted-foreground">{landmark}</span>
+                  <span className="font-semibold text-sm">{loc.label}</span>
+                  <span className="text-xs text-muted-foreground">{loc.landmark}</span>
                 </Button>
               );
             })}
@@ -310,7 +306,7 @@ export function SpatialTunerPanel() {
                   Proximity Weight Distribution:
                 </span>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                  {(Object.keys(VALVE_LABELS) as LocationId[]).map((id) => (
+                  {VALVE_IDS.map((id) => (
                     <div key={id} className="rounded border border-border p-2 bg-muted/30">
                       <span className="capitalize text-muted-foreground">{id}: </span>
                       <span className="font-mono font-semibold">

@@ -273,4 +273,38 @@ describe('Torso3DViewer - Red-Dot Pin-Drop Raycasting', () => {
 
     viewer.destroy();
   });
+
+  it('does not invoke onPinDrop and onStethoscopeMove redundantly when both callbacks are provided', () => {
+    const onPinDrop = vi.fn();
+    const onStethoscopeMove = vi.fn();
+    const viewer = new Torso3DViewer(container, {
+      enableStethoscopeDrag: true,
+      onPinDrop,
+      onStethoscopeMove,
+    });
+
+    // Discrete coordinate drop should invoke onPinDrop, NOT onStethoscopeMove
+    viewer.dropPinAtCoordinates(0, 0, 0.25);
+    expect(onPinDrop).toHaveBeenCalledTimes(1);
+    expect(onStethoscopeMove).not.toHaveBeenCalled();
+
+    // Reset mocks and test continuous dragging
+    onPinDrop.mockClear();
+    onStethoscopeMove.mockClear();
+
+    const canvas = container.querySelector('canvas');
+    expect(canvas).not.toBeNull();
+    if (canvas) {
+      canvas.dispatchEvent(
+        new PointerEvent('pointerdown', { clientX: 400, clientY: 300, bubbles: true }),
+      );
+      canvas.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: 410, clientY: 305, bubbles: true }),
+      );
+      expect(onStethoscopeMove).toHaveBeenCalled();
+      expect(onPinDrop).not.toHaveBeenCalled();
+    }
+
+    viewer.destroy();
+  });
 });
