@@ -209,6 +209,30 @@ describe('QuizPage', () => {
     expect(screen.queryByText('Previous attempts')).toBeNull();
   });
 
+  describe('downloading quizzes', () => {
+    it('downloads a quiz as a JSON file that can be uploaded again', async () => {
+      const saved: string[] = [];
+      const createUrl = vi.fn((blob: Blob) => {
+        void blob.text().then((t) => saved.push(t));
+        return 'blob:quiz';
+      });
+      vi.stubGlobal('URL', { createObjectURL: createUrl, revokeObjectURL: vi.fn() });
+      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(vi.fn());
+
+      render(<QuizPage />);
+      fireEvent.click(screen.getByRole('button', { name: `Download quiz: ${quizLabel}` }));
+      await vi.waitFor(() => {
+        expect(saved).toHaveLength(1);
+      });
+
+      expect(click).toHaveBeenCalledOnce();
+      expect(JSON.parse(saved[0] ?? '')).toMatchObject({ id: quiz.id, label: quizLabel });
+
+      click.mockRestore();
+      vi.unstubAllGlobals();
+    });
+  });
+
   describe('uploading quizzes', () => {
     function uploadedQuiz(answers: [boolean, boolean] = [true, false], label = 'My Upload') {
       return {
