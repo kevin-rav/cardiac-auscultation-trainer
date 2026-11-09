@@ -608,18 +608,10 @@ export class Torso3DViewer {
     this.pointerDownTime = performance.now();
 
     if (this.isStethoscopeDragMode && this.modelRoot) {
-      const rect = this.renderer.domElement.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-        const hits = this.raycaster.intersectObject(this.modelRoot, true);
-        const meshHit = hits.find((h) => h.object instanceof THREE.Mesh);
-        if (meshHit) {
-          this.isDraggingStethoscope = true;
-          this.controls.enabled = false;
-          this.applyPinDrop(meshHit);
-        }
+      const pin = this.dropPinAtScreen(event.clientX, event.clientY);
+      if (pin) {
+        this.isDraggingStethoscope = true;
+        this.controls.enabled = false;
       }
     }
   };

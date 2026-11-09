@@ -30,11 +30,8 @@ export interface SpatialState {
   selectedLandmarkId: LocationId | null;
   validationError: string | null;
 
-  // Actions
   setAcousticParam: <K extends keyof SpatialAcoustics>(key: K, value: SpatialAcoustics[K]) => void;
-  setAcoustics: (acoustics: Partial<SpatialAcoustics>) => void;
   setStethoscopePosition: (pos: Vector3Tuple) => void;
-  setLandmarkPosition: (id: LocationId, pos: Vector3Tuple) => void;
   selectAuditionValve: (id: LocationId) => void;
   resetToDefaults: () => void;
   exportJson: () => string;
@@ -57,170 +54,91 @@ function syncPlayer(result: SpatialAuscultationResult): void {
   });
 }
 
-const initialPosition: Vector3Tuple = defaultSpatialConfig.landmarks[0]?.position ?? [
-  -0.08, 1.442, 0.264,
-];
+const initialPos: Vector3Tuple = defaultSpatialConfig.landmarks[0]?.position ?? [0, 1.4, 0.25];
 const initialResult = calculateSpatialAuscultation(
-  initialPosition,
+  initialPos,
   locationsRecord,
   defaultSpatialConfig,
 );
 
-export const useSpatialStore = create<SpatialState>((set, get) => ({
-  config: defaultSpatialConfig,
-  stethoscopePosition: initialPosition,
-  spatialResult: initialResult,
-  selectedLandmarkId: defaultSpatialConfig.landmarks[0]?.id ?? 'aortic',
-  validationError: null,
-
-  setAcousticParam: (key, value) => {
-    const current = get();
-    const updatedAcoustics: SpatialAcoustics = {
-      ...current.config.acoustics,
-      [key]: value,
-    };
-    const updatedConfig: SpatialConfig = {
-      ...current.config,
-      acoustics: updatedAcoustics,
-    };
-    const spatialResult = calculateSpatialAuscultation(
-      current.stethoscopePosition,
-      locationsRecord,
-      updatedConfig,
-    );
+export const useSpatialStore = create<SpatialState>((set, get) => {
+  const applyState = (
+    config: SpatialConfig,
+    pos: Vector3Tuple,
+    selectedLandmark: LocationId | null,
+  ) => {
+    const spatialResult = calculateSpatialAuscultation(pos, locationsRecord, config);
     syncPlayer(spatialResult);
     set({
-      config: updatedConfig,
-      spatialResult,
-      validationError: null,
-    });
-  },
-
-  setAcoustics: (acoustics) => {
-    const current = get();
-    const updatedAcoustics: SpatialAcoustics = {
-      ...current.config.acoustics,
-      ...acoustics,
-    };
-    const updatedConfig: SpatialConfig = {
-      ...current.config,
-      acoustics: updatedAcoustics,
-    };
-    const spatialResult = calculateSpatialAuscultation(
-      current.stethoscopePosition,
-      locationsRecord,
-      updatedConfig,
-    );
-    syncPlayer(spatialResult);
-    set({
-      config: updatedConfig,
-      spatialResult,
-      validationError: null,
-    });
-  },
-
-  setStethoscopePosition: (pos) => {
-    const current = get();
-    const spatialResult = calculateSpatialAuscultation(pos, locationsRecord, current.config);
-    syncPlayer(spatialResult);
-    set({
+      config,
       stethoscopePosition: pos,
       spatialResult,
-      selectedLandmarkId: spatialResult.nearestValveId,
-    });
-  },
-
-  setLandmarkPosition: (id, pos) => {
-    const current = get();
-    const updatedLandmarks: SpatialLandmark[] = current.config.landmarks.map((lm) =>
-      lm.id === id ? { ...lm, position: pos } : lm,
-    );
-    const updatedConfig: SpatialConfig = {
-      ...current.config,
-      landmarks: updatedLandmarks,
-    };
-    const spatialResult = calculateSpatialAuscultation(
-      current.stethoscopePosition,
-      locationsRecord,
-      updatedConfig,
-    );
-    syncPlayer(spatialResult);
-    set({
-      config: updatedConfig,
-      spatialResult,
-    });
-  },
-
-  selectAuditionValve: (id) => {
-    const current = get();
-    const landmark = current.config.landmarks.find((lm) => lm.id === id);
-    if (!landmark) return;
-    const spatialResult = calculateSpatialAuscultation(
-      landmark.position,
-      locationsRecord,
-      current.config,
-    );
-    syncPlayer(spatialResult);
-    set({
-      stethoscopePosition: landmark.position,
-      spatialResult,
-      selectedLandmarkId: id,
-    });
-  },
-
-  resetToDefaults: () => {
-    const defaultPos: Vector3Tuple = defaultSpatialConfig.landmarks[0]?.position ?? [
-      -0.08, 1.442, 0.264,
-    ];
-    const spatialResult = calculateSpatialAuscultation(
-      defaultPos,
-      locationsRecord,
-      defaultSpatialConfig,
-    );
-    syncPlayer(spatialResult);
-    set({
-      config: defaultSpatialConfig,
-      stethoscopePosition: defaultPos,
-      spatialResult,
-      selectedLandmarkId: 'aortic',
+      selectedLandmarkId: selectedLandmark,
       validationError: null,
     });
-  },
+  };
 
-  exportJson: () => {
-    return JSON.stringify(get().config, null, 2);
-  },
+  return {
+    config: defaultSpatialConfig,
+    stethoscopePosition: initialPos,
+    spatialResult: initialResult,
+    selectedLandmarkId: initialResult.nearestValveId,
+    validationError: null,
 
-  importJson: (jsonString) => {
-    try {
-      const parsed: unknown = JSON.parse(jsonString);
-      const validation = SpatialConfigSchema.safeParse(parsed);
-      if (!validation.success) {
-        const errorMsg = validation.error.issues
-          .map((i) => `${i.path.join('.')}: ${i.message}`)
-          .join(', ');
-        set({ validationError: errorMsg });
+    setAcousticParam: (key, value) => {
+      const { config, stethoscopePosition, selectedLandmarkId } = get();
+      applyState(
+        { ...config, acoustics: { ...config.acoustics, [key]: value } },
+        stethoscopePosition,
+        selectedLandmarkId,
+      );
+    },
+
+    setStethoscopePosition: (pos) => {
+      const { config } = get();
+      const result = calculateSpatialAuscultation(pos, locationsRecord, config);
+      syncPlayer(result);
+      set({
+        stethoscopePosition: pos,
+        spatialResult: result,
+        selectedLandmarkId: result.nearestValveId,
+      });
+    },
+
+    selectAuditionValve: (id) => {
+      const { config } = get();
+      const landmark = config.landmarks.find((lm) => lm.id === id);
+      if (landmark) applyState(config, landmark.position, id);
+    },
+
+    resetToDefaults: () => {
+      applyState(
+        defaultSpatialConfig,
+        initialPos,
+        defaultSpatialConfig.landmarks[0]?.id ?? 'aortic',
+      );
+    },
+
+    exportJson: () => JSON.stringify(get().config, null, 2),
+
+    importJson: (jsonString) => {
+      try {
+        const parsed: unknown = JSON.parse(jsonString);
+        const result = SpatialConfigSchema.safeParse(parsed);
+        if (!result.success) {
+          const issue = result.error.issues[0];
+          const path = issue?.path.join('.') ?? '';
+          const msg = issue?.message ?? 'Invalid Spatial Schema';
+          set({ validationError: path ? `${path}: ${msg}` : msg });
+          return false;
+        }
+        const { stethoscopePosition, selectedLandmarkId } = get();
+        applyState(result.data, stethoscopePosition, selectedLandmarkId);
+        return true;
+      } catch (err) {
+        set({ validationError: err instanceof Error ? err.message : 'Malformed JSON syntax' });
         return false;
       }
-
-      const validConfig = validation.data;
-      const current = get();
-      const spatialResult = calculateSpatialAuscultation(
-        current.stethoscopePosition,
-        locationsRecord,
-        validConfig,
-      );
-      syncPlayer(spatialResult);
-      set({
-        config: validConfig,
-        spatialResult,
-        validationError: null,
-      });
-      return true;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Invalid JSON format';
-      set({ validationError: errorMsg });
-      return false;
-    }
-  },
-}));
+    },
+  };
+});
