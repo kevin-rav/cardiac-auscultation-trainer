@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Pin Drop HUD elements
   const pinDropHud = document.getElementById('pinDropHud');
   const pinModelCoords = document.getElementById('pinModelCoords');
+  const pinNormalCoords = document.getElementById('pinNormalCoords');
   const pinProximity = document.getElementById('pinProximity');
   const pinTissueFilter = document.getElementById('pinTissueFilter');
   const pinSpatialGain = document.getElementById('pinSpatialGain');
@@ -140,6 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (pinModelCoords) {
       pinModelCoords.textContent = `[${data.modelPosition.join(', ')}]`;
+    }
+    if (pinNormalCoords) {
+      pinNormalCoords.textContent = `[${data.normal.join(', ')}]`;
     }
     if (pinProximity) {
       const nearestId = spatial.nearestValveId;

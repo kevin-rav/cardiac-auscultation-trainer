@@ -185,6 +185,10 @@
             <code class="pin-hud-coords" id="pinModelCoords">[0.000, 0.000, 0.000]</code>
           </div>
           <div class="pin-hud-row">
+            <span class="pin-hud-label">Surface Normal:</span>
+            <code class="pin-hud-coords-dim" id="pinNormalCoords">[0.000, 0.000, 1.000]</code>
+          </div>
+          <div class="pin-hud-row">
             <span class="pin-hud-label">Proximity:</span>
             <span class="pin-hud-val" id="pinProximity">Aortic: 100%</span>
           </div>
@@ -223,20 +227,20 @@
 
         <div class="utility-group">
           <button
-            class="icon-btn"
-            id="btnToggleStethoscope"
-            title="Toggle Stethoscope Mode: Drag across chest to listen live (L)"
-            aria-label="Toggle Stethoscope Drag Mode"
-          >
-            🩺
-          </button>
-          <button
             class="icon-btn active"
             id="btnTogglePinDrop"
             title="Toggle Pin Drop Mode (Click model to drop red pin)"
             aria-label="Toggle Pin Drop"
           >
             📍
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleStethoscope"
+            title="Toggle Stethoscope Mode: Drag across chest to listen live (L)"
+            aria-label="Toggle Stethoscope Drag Mode"
+          >
+            🩺
           </button>
           <button
             class="icon-btn"

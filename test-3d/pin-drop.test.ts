@@ -224,7 +224,6 @@ describe('Torso3DViewer - Red-Dot Pin-Drop Raycasting', () => {
 
     viewer.destroy();
   });
-
   it('supports stethoscope mode to drag and move continuously across the mesh', () => {
     const onStethoscopeMove = vi.fn();
     const viewer = new Torso3DViewer(container, {

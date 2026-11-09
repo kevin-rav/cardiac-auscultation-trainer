@@ -9,18 +9,26 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getCurrentQuestion, isAnswerCorrect, useQuizStore } from '../../store';
+import {
+  formatAnswer,
+  getCurrentQuestion,
+  isAnswerCorrect,
+  useQuizStore,
+  type QuizAnswer,
+} from '../../store';
 
 interface QuizQuestionProps {
   /** Called once per question with the learner's selected answer. */
-  onRecord: (questionId: string, selected: boolean) => void;
+  onRecord: (questionId: string, selected: QuizAnswer) => void;
+  /** Called when the learner finishes the last question, before the results show. */
+  onFinish: () => void;
 }
 
 const CORRECT_STYLE =
   'border-emerald-600 bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/10 dark:text-emerald-400';
 const WRONG_STYLE = 'border-destructive bg-destructive/10 text-destructive';
 
-export function QuizQuestion({ onRecord }: QuizQuestionProps) {
+export function QuizQuestion({ onRecord, onFinish }: QuizQuestionProps) {
   const quiz = useQuizStore((s) => s.quiz);
   const question = useQuizStore(getCurrentQuestion);
   const questionIndex = useQuizStore((s) => s.questionIndex);
@@ -41,13 +49,18 @@ export function QuizQuestion({ onRecord }: QuizQuestionProps) {
   const answered = selectedAnswer !== null;
   const isLast = questionIndex === total - 1;
 
-  const handleAnswer = (choice: boolean) => {
+  const handleNext = () => {
+    if (isLast) onFinish();
+    nextQuestion();
+  };
+
+  const handleAnswer = (choice: QuizAnswer) => {
     if (answered) return;
     answer(choice);
     onRecord(question.id, choice);
   };
 
-  const optionStyle = (choice: boolean): string => {
+  const optionStyle = (choice: QuizAnswer): string => {
     if (!answered) return '';
     if (choice === question.answer) return CORRECT_STYLE;
     if (choice === selectedAnswer) return WRONG_STYLE;
@@ -55,6 +68,13 @@ export function QuizQuestion({ onRecord }: QuizQuestionProps) {
   };
 
   const answeredCount = questionIndex + (answered ? 1 : 0);
+  const choices = question.type === 'multiple-choice' ? question.choices : undefined;
+  const options: { value: QuizAnswer; label: string }[] = choices
+    ? choices.map((c) => ({ value: c.id, label: c.label }))
+    : [
+        { value: true, label: 'Yes' },
+        { value: false, label: 'No' },
+      ];
 
   return (
     <div className="space-y-4">
@@ -110,19 +130,19 @@ export function QuizQuestion({ onRecord }: QuizQuestionProps) {
             </p>
           )}
 
-          <div className="flex gap-3">
-            {([true, false] as const).map((choice) => (
+          <div className={choices ? 'grid gap-2 sm:grid-cols-2' : 'flex gap-3'}>
+            {options.map((option) => (
               <Button
-                key={String(choice)}
+                key={String(option.value)}
                 type="button"
                 variant="outline"
-                className={`h-11 flex-1 text-base ${optionStyle(choice)}`}
-                aria-pressed={selectedAnswer === choice}
+                className={`h-11 flex-1 text-base ${optionStyle(option.value)}`}
+                aria-pressed={selectedAnswer === option.value}
                 onClick={() => {
-                  handleAnswer(choice);
+                  handleAnswer(option.value);
                 }}
               >
-                {choice ? 'Yes' : 'No'}
+                {option.label}
               </Button>
             ))}
           </div>
@@ -142,7 +162,7 @@ export function QuizQuestion({ onRecord }: QuizQuestionProps) {
                   )}
                   {correct === true ? 'Correct' : 'Not quite'}
                 </p>
-                <p className="text-sm">The answer is {question.answer ? 'Yes' : 'No'}.</p>
+                <p className="text-sm">The answer is {formatAnswer(question.answer, choices)}.</p>
                 {question.explanation !== undefined && (
                   <p className="text-sm text-muted-foreground">{question.explanation}</p>
                 )}
@@ -155,7 +175,7 @@ export function QuizQuestion({ onRecord }: QuizQuestionProps) {
           <Button type="button" variant="ghost" onClick={exitQuiz}>
             Exit quiz
           </Button>
-          <Button type="button" onClick={nextQuestion} disabled={!answered}>
+          <Button type="button" onClick={handleNext} disabled={!answered}>
             {isLast ? 'See results' : 'Next question'}
           </Button>
         </CardFooter>

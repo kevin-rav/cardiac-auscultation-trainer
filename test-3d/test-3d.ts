@@ -669,7 +669,6 @@ export class Torso3DViewer {
       this.dropPinAtScreen(event.clientX, event.clientY);
     }
   };
-
   private applyPinDrop(hit: THREE.Intersection): PinDropData {
     if (!this.modelRoot) {
       throw new Error('Cannot drop pin: modelRoot is null');

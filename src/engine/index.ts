@@ -5,3 +5,4 @@ export * from './beats';
 export * from './resolve';
 export * from './scheduler';
 export * from './spatial';
+export * from './quizValidation';

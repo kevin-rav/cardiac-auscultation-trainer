@@ -3,11 +3,13 @@ import type { CardiacAudioPlayer } from '../audio';
 import type { Quiz } from '../engine/schema';
 import { PRESET_QUIZZES, soundSetsRecord } from '../data';
 import {
+  formatAnswer,
   getCurrentQuestion,
   isAnswerCorrect,
   setQuizPlayerInstance,
   useQuizStore,
 } from './quizStore';
+import { useUploadedQuizStore } from './uploadedQuizStore';
 
 const playFn = vi.fn<() => Promise<void>>();
 const stopFn = vi.fn();
@@ -68,6 +70,14 @@ describe('QuizStore', () => {
       const state = useQuizStore.getState();
       expect(state.quiz?.id).toBe(preset.id);
       expect(getCurrentQuestion(state)).toEqual(preset.questions[0]);
+    });
+
+    it('loads an uploaded quiz by id', () => {
+      useUploadedQuizStore.setState({ quizzes: [{ ...fixtureQuiz, id: 'uploaded-quiz' }] });
+
+      expect(useQuizStore.getState().startQuiz('uploaded-quiz')).toBe(true);
+      expect(useQuizStore.getState().quiz?.id).toBe('uploaded-quiz');
+      useUploadedQuizStore.setState({ quizzes: [] });
     });
 
     it('returns false and changes nothing for an unknown id', () => {
@@ -248,6 +258,76 @@ describe('QuizStore', () => {
       useQuizStore.getState()[action]();
       expect(stopFn).toHaveBeenCalled();
       expect(useQuizStore.getState().isPlaying).toBe(false);
+    });
+  });
+
+  describe('multiple-choice answers', () => {
+    function startMultipleChoice(): void {
+      useQuizStore.setState({
+        quiz: {
+          id: 'mcq-fixture',
+          label: 'MCQ Fixture',
+          questions: [
+            {
+              id: 'm1',
+              type: 'multiple-choice',
+              prompt: 'Which sound is this?',
+              sound: { soundSet: 's3-gallop', bpm: 72 },
+              choices: [
+                { id: 's3', label: 'S3 gallop' },
+                { id: 's4', label: 'S4 gallop' },
+              ],
+              answer: 's3',
+            },
+          ],
+        },
+        questionIndex: 0,
+        selectedAnswer: null,
+      });
+    }
+
+    it('marks the correct choice correct', () => {
+      startMultipleChoice();
+      useQuizStore.getState().answer('s3');
+      expect(isAnswerCorrect(useQuizStore.getState())).toBe(true);
+    });
+
+    it('marks another choice incorrect', () => {
+      startMultipleChoice();
+      useQuizStore.getState().answer('s4');
+      expect(isAnswerCorrect(useQuizStore.getState())).toBe(false);
+    });
+
+    it.each([
+      ['a choice id that does not exist', 'normal'],
+      ['a yes-no answer', true],
+    ])('ignores %s', (_label, choice) => {
+      startMultipleChoice();
+      useQuizStore.getState().answer(choice);
+      expect(useQuizStore.getState().selectedAnswer).toBeNull();
+    });
+
+    it('ignores a choice id for a yes-no question', () => {
+      startFixture();
+      useQuizStore.getState().answer('s3');
+      expect(useQuizStore.getState().selectedAnswer).toBeNull();
+    });
+  });
+
+  describe('formatAnswer', () => {
+    const choices = [
+      { id: 's3', label: 'S3 gallop' },
+      { id: 's4', label: 'S4 gallop' },
+    ];
+
+    it.each([
+      [true, undefined, 'Yes'],
+      [false, undefined, 'No'],
+      ['s4', choices, 'S4 gallop'],
+      ['missing', choices, 'missing'],
+      ['s3', undefined, 's3'],
+    ] as const)('formats %s as %s', (value, choiceList, expected) => {
+      expect(formatAnswer(value, choiceList)).toBe(expected);
     });
   });
 });

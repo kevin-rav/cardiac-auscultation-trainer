@@ -38,6 +38,9 @@ export const soundSetsRecord: Readonly<Record<string, SoundSet>> = Object.fromEn
   PRESET_SOUND_SETS.map((set) => [set.id, set]),
 );
 
+/** Ids a quiz question may reference, for validateQuiz. */
+export const SOUND_SET_IDS: ReadonlySet<string> = new Set(Object.keys(soundSetsRecord));
+
 const quizFiles = import.meta.glob<Record<string, unknown>>('./quizzes/*.json', {
   eager: true,
   import: 'default',

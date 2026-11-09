@@ -1,19 +1,22 @@
 import { create } from 'zustand';
 import { CardiacAudioPlayer } from '../audio';
-import type { Quiz, SoundSet, YesNoQuestion } from '../engine/schema';
+import type { Quiz, QuizAnswer, QuizChoice, QuizQuestion, SoundSet } from '../engine/schema';
 import { manifest, quizzesRecord, soundSetsRecord } from '../data';
+import { useUploadedQuizStore } from './uploadedQuizStore';
+
+export type { Quiz, QuizAnswer, QuizChoice, QuizQuestion } from '../engine/schema';
 
 export interface QuizState {
   quiz: Quiz | null;
   questionIndex: number;
   /** The learner's answer to the current question, or null before they answer. */
-  selectedAnswer: boolean | null;
+  selectedAnswer: QuizAnswer | null;
   isFinished: boolean;
   isPlaying: boolean;
   audioError: string | null;
 
   startQuiz: (id: string) => boolean;
-  answer: (choice: boolean) => void;
+  answer: (choice: QuizAnswer) => void;
   nextQuestion: () => void;
   restart: () => void;
   exitQuiz: () => void;
@@ -22,7 +25,7 @@ export interface QuizState {
   stopSound: () => void;
 }
 
-export function getCurrentQuestion(state: QuizState): YesNoQuestion | null {
+export function getCurrentQuestion(state: QuizState): QuizQuestion | null {
   return state.quiz?.questions[state.questionIndex] ?? null;
 }
 
@@ -31,6 +34,18 @@ export function isAnswerCorrect(state: QuizState): boolean | null {
   const question = getCurrentQuestion(state);
   if (!question || state.selectedAnswer === null) return null;
   return state.selectedAnswer === question.answer;
+}
+
+/** Display text for an answer: Yes or No, or the matching choice's label. */
+export function formatAnswer(value: QuizAnswer, choices?: readonly QuizChoice[]): string {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return choices?.find((c) => c.id === value)?.label ?? value;
+}
+
+/** A yes-no question takes true or false; a multiple-choice question takes one of its choice ids. */
+function isValidAnswer(question: QuizQuestion, choice: QuizAnswer): boolean {
+  if (question.type === 'yes-no') return typeof choice === 'boolean';
+  return question.choices.some((c) => c.id === choice);
 }
 
 let quizPlayer: CardiacAudioPlayer | null = null;
@@ -60,7 +75,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   audioError: null,
 
   startQuiz: (id) => {
-    const quiz = quizzesRecord[id];
+    const quiz =
+      quizzesRecord[id] ?? useUploadedQuizStore.getState().quizzes.find((q) => q.id === id);
     if (!quiz) return false;
     get().stopSound();
     set({ quiz, ...initialProgress });
@@ -69,8 +85,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   answer: (choice) => {
     const state = get();
+    const question = getCurrentQuestion(state);
     // Lock in the first answer so feedback cannot be changed by clicking again.
-    if (!getCurrentQuestion(state) || state.selectedAnswer !== null) return;
+    if (!question || state.selectedAnswer !== null || !isValidAnswer(question, choice)) return;
     set({ selectedAnswer: choice });
   },
 
