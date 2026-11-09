@@ -256,6 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Wire up utility control buttons
+  const btnToggleInfoCard = document.getElementById('btnToggleInfoCard');
+  const infoCard = document.getElementById('infoCard');
+  btnToggleInfoCard?.addEventListener('click', () => {
+    infoCard?.classList.toggle('collapsed');
+  });
+
   btnTogglePinDrop?.addEventListener('click', () => {
     const isEnabled = viewer.togglePinDrop();
     btnTogglePinDrop.classList.toggle('active', isEnabled);

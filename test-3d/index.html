@@ -136,29 +136,41 @@
       <!-- Clinical Information Card -->
       <aside class="info-card" id="infoCard" aria-live="polite">
         <div class="info-card-header">
-          <span class="info-card-title" id="infoTitle">Aortic Area</span>
-          <span class="info-tag" id="infoTag" style="background-color: #ef4444">Aortic</span>
-        </div>
-        <div class="info-field">
-          <div class="info-field-label">Anatomical Landmark</div>
-          <div class="info-field-value" id="infoLandmark">
-            2nd Intercostal Space, Right Sternal Border
+          <div class="info-card-title-wrap">
+            <span class="info-card-title" id="infoTitle">Aortic Area</span>
+            <span class="info-tag" id="infoTag" style="background-color: #ef4444">Aortic</span>
           </div>
+          <button
+            class="info-card-toggle"
+            id="btnToggleInfoCard"
+            title="Minimize/Expand Info"
+            aria-label="Toggle Clinical Details"
+          >
+            ▾
+          </button>
         </div>
-        <div class="info-field">
-          <div class="info-field-label">Auscultatory Acoustics</div>
-          <div class="info-field-value" id="infoSound">S2 louder than S1 (A2 aortic closure)</div>
-        </div>
-        <div class="info-field">
-          <div class="info-field-label">Clinical Highlights</div>
-          <div class="info-field-value" id="infoSignificance">
-            Best site to detect Aortic Stenosis and Aortic Regurgitation.
+        <div class="info-card-body" id="infoCardBody">
+          <div class="info-field">
+            <div class="info-field-label">Anatomical Landmark</div>
+            <div class="info-field-value" id="infoLandmark">
+              2nd Intercostal Space, Right Sternal Border
+            </div>
           </div>
-        </div>
-        <div class="info-field">
-          <div class="info-field-label">Primary Pathology</div>
-          <div class="info-field-value" id="infoCondition">
-            Systolic ejection murmur of Aortic Stenosis radiating to carotids.
+          <div class="info-field">
+            <div class="info-field-label">Auscultatory Acoustics</div>
+            <div class="info-field-value" id="infoSound">S2 louder than S1 (A2 aortic closure)</div>
+          </div>
+          <div class="info-field">
+            <div class="info-field-label">Clinical Highlights</div>
+            <div class="info-field-value" id="infoSignificance">
+              Best site to detect Aortic Stenosis and Aortic Regurgitation.
+            </div>
+          </div>
+          <div class="info-field">
+            <div class="info-field-label">Primary Pathology</div>
+            <div class="info-field-value" id="infoCondition">
+              Systolic ejection murmur of Aortic Stenosis radiating to carotids.
+            </div>
           </div>
         </div>
       </aside>
