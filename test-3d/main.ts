@@ -267,17 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const infoHeader = document.getElementById('infoHeader');
   const infoCard = document.getElementById('infoCard');
 
-  const toggleInfoCardCollapse = (): void => {
-    if (!infoCard) return;
-    if (infoCard.style.display === 'none') {
-      infoCard.style.display = 'block';
-      infoCard.classList.remove('collapsed');
-      btnToggleInfoDock?.classList.add('active');
-    } else {
-      infoCard.classList.toggle('collapsed');
-    }
-  };
-
   btnToggleInfoCard?.addEventListener('click', (e) => {
     e.stopPropagation();
     infoCard?.classList.toggle('collapsed');
@@ -428,6 +417,9 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'c':
         btnPinClear?.click();
+        break;
+      case 'i':
+        btnToggleInfoDock?.click();
         break;
     }
   });
