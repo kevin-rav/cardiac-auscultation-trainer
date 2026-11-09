@@ -58,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Pin Drop HUD elements
   const pinDropHud = document.getElementById('pinDropHud');
+  const pinHudHeader = document.getElementById('pinHudHeader');
+  const pinHudProximityBadge = document.getElementById('pinHudProximityBadge');
   const pinModelCoords = document.getElementById('pinModelCoords');
   const pinNormalCoords = document.getElementById('pinNormalCoords');
   const pinProximity = document.getElementById('pinProximity');
@@ -150,6 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const nearestPct = Math.round(spatial.valveWeights[nearestId] * 100);
       const valveName = nearestId.charAt(0).toUpperCase() + nearestId.slice(1);
       pinProximity.textContent = `${valveName} (${String(nearestPct)}%)`;
+      if (pinHudProximityBadge) {
+        pinHudProximityBadge.textContent = `${valveName} ${String(nearestPct)}%`;
+      }
     }
     if (pinTissueFilter) {
       pinTissueFilter.textContent = `${spatial.tissueLowpassHz.toLocaleString()} Hz`;
@@ -257,13 +262,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Wire up utility control buttons
   const btnToggleInfoCard = document.getElementById('btnToggleInfoCard');
+  const btnCloseInfoCard = document.getElementById('btnCloseInfoCard');
+  const btnToggleInfoDock = document.getElementById('btnToggleInfoDock');
+  const infoHeader = document.getElementById('infoHeader');
   const infoCard = document.getElementById('infoCard');
-  btnToggleInfoCard?.addEventListener('click', () => {
+
+  const toggleInfoCardCollapse = (): void => {
+    if (!infoCard) return;
+    if (infoCard.style.display === 'none') {
+      infoCard.style.display = 'block';
+      infoCard.classList.remove('collapsed');
+      btnToggleInfoDock?.classList.add('active');
+    } else {
+      infoCard.classList.toggle('collapsed');
+    }
+  };
+
+  btnToggleInfoCard?.addEventListener('click', (e) => {
+    e.stopPropagation();
     infoCard?.classList.toggle('collapsed');
   });
 
+  btnCloseInfoCard?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (infoCard) {
+      infoCard.style.display = 'none';
+      btnToggleInfoDock?.classList.remove('active');
+    }
+  });
+
+  infoHeader?.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.info-card-actions')) return;
+    infoCard?.classList.toggle('collapsed');
+  });
+
+  btnToggleInfoDock?.addEventListener('click', () => {
+    if (!infoCard) return;
+    if (infoCard.style.display === 'none') {
+      infoCard.style.display = 'block';
+      infoCard.classList.remove('collapsed');
+      btnToggleInfoDock.classList.add('active');
+    } else if (infoCard.classList.contains('collapsed')) {
+      infoCard.classList.remove('collapsed');
+      btnToggleInfoDock.classList.add('active');
+    } else {
+      infoCard.classList.add('collapsed');
+      btnToggleInfoDock.classList.remove('active');
+    }
+  });
+
   const btnTogglePinHud = document.getElementById('btnTogglePinHud');
-  btnTogglePinHud?.addEventListener('click', () => {
+  btnTogglePinHud?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pinDropHud?.classList.toggle('collapsed');
+  });
+
+  pinHudHeader?.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.pin-hud-actions')) return;
     pinDropHud?.classList.toggle('collapsed');
   });
 

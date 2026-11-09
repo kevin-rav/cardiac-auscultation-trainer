@@ -134,20 +134,30 @@
       </main>
 
       <!-- Clinical Information Card -->
-      <aside class="info-card" id="infoCard" aria-live="polite">
-        <div class="info-card-header">
+      <aside class="info-card collapsed" id="infoCard" aria-live="polite">
+        <div class="info-card-header" id="infoHeader">
           <div class="info-card-title-wrap">
             <span class="info-card-title" id="infoTitle">Aortic Area</span>
             <span class="info-tag" id="infoTag" style="background-color: #ef4444">Aortic</span>
           </div>
-          <button
-            class="info-card-toggle"
-            id="btnToggleInfoCard"
-            title="Minimize/Expand Info"
-            aria-label="Toggle Clinical Details"
-          >
-            ▾
-          </button>
+          <div class="info-card-actions">
+            <button
+              class="info-card-toggle"
+              id="btnToggleInfoCard"
+              title="Minimize/Expand Info"
+              aria-label="Toggle Clinical Details"
+            >
+              ▾
+            </button>
+            <button
+              class="info-card-close"
+              id="btnCloseInfoCard"
+              title="Close Info Card"
+              aria-label="Close Clinical Details"
+            >
+              ✕
+            </button>
+          </div>
         </div>
         <div class="info-card-body" id="infoCardBody">
           <div class="info-field">
@@ -176,11 +186,12 @@
       </aside>
 
       <!-- Stethoscope & Coordinates HUD -->
-      <div class="pin-drop-hud" id="pinDropHud" style="display: none" aria-live="polite">
-        <div class="pin-hud-header">
+      <div class="pin-drop-hud collapsed" id="pinDropHud" style="display: none" aria-live="polite">
+        <div class="pin-hud-header" id="pinHudHeader">
           <div class="pin-hud-title-wrap">
             <span class="pin-dot-indicator"></span>
-            <span class="pin-hud-title" id="pinHudTitle">Stethoscope Auscultation</span>
+            <span class="pin-hud-title" id="pinHudTitle">Stethoscope</span>
+            <span class="pin-hud-badge" id="pinHudProximityBadge"></span>
           </div>
           <div class="pin-hud-actions">
             <button
@@ -202,25 +213,27 @@
           </div>
         </div>
         <div class="pin-hud-body">
-          <div class="pin-hud-row">
-            <span class="pin-hud-label">Model [x, y, z]:</span>
+          <div class="pin-hud-grid">
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Proximity</span>
+              <span class="pin-hud-val" id="pinProximity">Aortic: 100%</span>
+            </div>
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Spatial Level</span>
+              <span class="pin-hud-val" id="pinSpatialGain">100%</span>
+            </div>
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Tissue Filter</span>
+              <span class="pin-hud-val" id="pinTissueFilter">3,800 Hz</span>
+            </div>
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Surface Normal</span>
+              <code class="pin-hud-coords-dim" id="pinNormalCoords">[0, 0, 1]</code>
+            </div>
+          </div>
+          <div class="pin-hud-row pin-hud-full">
+            <span class="pin-hud-label">Model [x, y, z]</span>
             <code class="pin-hud-coords" id="pinModelCoords">[0.000, 0.000, 0.000]</code>
-          </div>
-          <div class="pin-hud-row">
-            <span class="pin-hud-label">Surface Normal:</span>
-            <code class="pin-hud-coords-dim" id="pinNormalCoords">[0.000, 0.000, 1.000]</code>
-          </div>
-          <div class="pin-hud-row">
-            <span class="pin-hud-label">Proximity:</span>
-            <span class="pin-hud-val" id="pinProximity">Aortic: 100%</span>
-          </div>
-          <div class="pin-hud-row">
-            <span class="pin-hud-label">Tissue Filter:</span>
-            <span class="pin-hud-val" id="pinTissueFilter">3,800 Hz (Precordium)</span>
-          </div>
-          <div class="pin-hud-row">
-            <span class="pin-hud-label">Spatial Level:</span>
-            <span class="pin-hud-val" id="pinSpatialGain">100%</span>
           </div>
           <button class="pin-hud-copy" id="btnPinCopy">Copy Model Coordinates</button>
         </div>
@@ -263,6 +276,14 @@
             aria-label="Toggle Stethoscope Drag Mode"
           >
             🩺
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleInfoDock"
+            title="Toggle Clinical Information (I)"
+            aria-label="Toggle Clinical Information"
+          >
+            ℹ️
           </button>
           <button
             class="icon-btn"
