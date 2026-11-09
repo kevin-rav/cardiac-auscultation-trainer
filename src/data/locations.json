@@ -1,0 +1,82 @@
+[
+  {
+    "id": "aortic",
+    "label": "Aortic Area",
+    "landmark": "2nd Intercostal Space, Right Sternal Border",
+    "gain": 1.0,
+    "filter": {
+      "highpassHz": 80,
+      "lowpassHz": 3800
+    },
+    "components": {
+      "S1": { "gain": 0.65 },
+      "S2": { "gain": 1.35, "playbackRate": 1.04 },
+      "S3": { "gain": 0.25 },
+      "S4": { "gain": 0.25 },
+      "click": { "gain": 0.3 },
+      "systolicMurmur": { "gain": 1.35 },
+      "diastolicMurmur": { "gain": 1.1 }
+    },
+    "samples": {}
+  },
+  {
+    "id": "pulmonic",
+    "label": "Pulmonic Area",
+    "landmark": "2nd Intercostal Space, Left Sternal Border",
+    "gain": 1.0,
+    "filter": {
+      "highpassHz": 80,
+      "lowpassHz": 3600
+    },
+    "components": {
+      "S1": { "gain": 0.6 },
+      "S2": { "gain": 1.25, "playbackRate": 1.02 },
+      "S3": { "gain": 0.35 },
+      "S4": { "gain": 0.35 },
+      "click": { "gain": 0.25 },
+      "systolicMurmur": { "gain": 0.85 },
+      "diastolicMurmur": { "gain": 0.9 }
+    },
+    "samples": {}
+  },
+  {
+    "id": "tricuspid",
+    "label": "Tricuspid Area",
+    "landmark": "4th-5th Intercostal Space, Left Lower Sternal Border",
+    "gain": 0.95,
+    "filter": {
+      "highpassHz": 60,
+      "lowpassHz": 2600
+    },
+    "components": {
+      "S1": { "gain": 1.05, "playbackRate": 0.98 },
+      "S2": { "gain": 0.8 },
+      "S3": { "gain": 0.7 },
+      "S4": { "gain": 0.7 },
+      "click": { "gain": 0.6 },
+      "systolicMurmur": { "gain": 0.95 },
+      "diastolicMurmur": { "gain": 0.9 }
+    },
+    "samples": {}
+  },
+  {
+    "id": "mitral",
+    "label": "Mitral Area (Apex)",
+    "landmark": "5th Intercostal Space, Left Midclavicular Line",
+    "gain": 1.1,
+    "filter": {
+      "highpassHz": 40,
+      "lowpassHz": 3000
+    },
+    "components": {
+      "S1": { "gain": 1.45, "playbackRate": 0.96 },
+      "S2": { "gain": 0.7 },
+      "S3": { "gain": 1.5 },
+      "S4": { "gain": 1.5 },
+      "click": { "gain": 1.2 },
+      "systolicMurmur": { "gain": 1.2 },
+      "diastolicMurmur": { "gain": 1.3 }
+    },
+    "samples": {}
+  }
+]

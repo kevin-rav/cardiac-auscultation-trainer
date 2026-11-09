@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "description": "Anatomical valve coordinates on Auscultation_Torso_v1.glb and thoracic acoustic transmission physics",
+  "acoustics": {
+    "sigma": 0.16,
+    "falloffHalfDist": 0.35,
+    "maxFilterHz": 3800,
+    "minFilterHz": 320,
+    "filterRollOffDist": 0.3,
+    "stereoPanScale": 0.8
+  },
+  "landmarks": [
+    {
+      "id": "aortic",
+      "label": "Aortic Area (2nd ICS RSB)",
+      "position": [-0.08, 1.442, 0.264]
+    },
+    {
+      "id": "pulmonic",
+      "label": "Pulmonic Area (2nd ICS LSB)",
+      "position": [0.205, 1.446, 0.278]
+    },
+    {
+      "id": "tricuspid",
+      "label": "Tricuspid Area (4th-5th ICS LSB)",
+      "position": [0.004, 1.109, 0.316]
+    },
+    {
+      "id": "mitral",
+      "label": "Mitral Area / Apex (5th ICS MCL)",
+      "position": [0.321, 1.023, 0.299]
+    }
+  ]
+}

@@ -168,6 +168,40 @@ export const LocationSchema = z.object({
 });
 export type Location = z.infer<typeof LocationSchema>;
 
+export const LocationsSchema = z.array(LocationSchema);
+export type Locations = z.infer<typeof LocationsSchema>;
+
+export const SpatialLandmarkSchema = z.object({
+  id: LocationIdSchema,
+  label: z.string(),
+  position: z.tuple([z.number(), z.number(), z.number()]).readonly(),
+});
+export type SpatialLandmark = z.infer<typeof SpatialLandmarkSchema>;
+
+export const SpatialAcousticsSchema = z.object({
+  /** Gaussian spread / radiation radius around valve sites on chest (units) */
+  sigma: z.number().min(0.01).max(1.0).default(0.16),
+  /** Distance from heart center where overall volume drops by 50% */
+  falloffHalfDist: z.number().min(0.05).max(2.0).default(0.35),
+  /** Maximum tissue filter frequency in Hz when centered directly over a valve */
+  maxFilterHz: z.number().min(1000).max(20000).default(3800),
+  /** Minimum tissue filter frequency in Hz when far away on torso/flank */
+  minFilterHz: z.number().min(50).max(1000).default(320),
+  /** Distance in units where soft tissue absorbs high frequencies */
+  filterRollOffDist: z.number().min(0.05).max(2.0).default(0.3),
+  /** Subtle stereo panning multiplier (-0.35 to +0.35 clamp) */
+  stereoPanScale: z.number().min(0).max(2.0).default(0.8),
+});
+export type SpatialAcoustics = z.infer<typeof SpatialAcousticsSchema>;
+
+export const SpatialConfigSchema = z.object({
+  version: z.string().default('1.0.0'),
+  description: z.string().optional(),
+  acoustics: SpatialAcousticsSchema,
+  landmarks: z.array(SpatialLandmarkSchema).min(4),
+});
+export type SpatialConfig = z.infer<typeof SpatialConfigSchema>;
+
 export const CycleParamsSchema = z.object({
   systole: z.object({
     interceptMs: z.number().default(546),

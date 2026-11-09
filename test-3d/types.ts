@@ -44,4 +44,6 @@ export interface TorsoViewerOptions {
   onModelLoaded?: () => void;
   onError?: (error: Error) => void;
   onPinDrop?: (data: PinDropData) => void;
+  enableStethoscopeDrag?: boolean;
+  onStethoscopeMove?: (data: PinDropData) => void;
 }

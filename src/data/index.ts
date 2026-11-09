@@ -1,14 +1,29 @@
+import locationsJson from './locations.json';
 import manifestJson from './manifest.json';
+import spatialJson from './spatial.json';
 import {
+  LocationsSchema,
   ManifestSchema,
   QuizSchema,
   SoundSetSchema,
+  SpatialConfigSchema,
+  type Location,
+  type LocationId,
   type Manifest,
   type Quiz,
   type SoundSet,
+  type SpatialConfig,
 } from '../engine/schema';
 
 export const manifest: Manifest = ManifestSchema.parse(manifestJson);
+
+export const PRESET_LOCATIONS: readonly Location[] = LocationsSchema.parse(locationsJson);
+
+export const locationsRecord: Readonly<Record<LocationId, Location>> = Object.fromEntries(
+  PRESET_LOCATIONS.map((loc) => [loc.id, loc]),
+) as Record<LocationId, Location>;
+
+export const spatialConfig: SpatialConfig = SpatialConfigSchema.parse(spatialJson);
 
 const soundSetFiles = import.meta.glob<Record<string, unknown>>('./sound-sets/*.json', {
   eager: true,

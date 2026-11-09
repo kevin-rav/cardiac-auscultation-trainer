@@ -14,6 +14,63 @@
           <span class="badge-tag">3D Model</span>
           <span class="title-text">Cardiac Torso Auscultation Explorer</span>
         </div>
+
+        <!-- Audio Auscultation Control Bar -->
+        <div class="audio-control-bar" role="region" aria-label="Cardiac Auscultation Controls">
+          <button
+            id="btnPlayAudio"
+            class="auscultate-btn"
+            title="Start/Stop Heartbeat Auscultation (Space or S)"
+            aria-pressed="false"
+          >
+            <span id="playIcon">▶</span>
+            <span id="playLabel">Auscultate</span>
+          </button>
+
+          <div class="control-divider"></div>
+
+          <div class="condition-wrap">
+            <label for="selectCondition" class="ctrl-label">Condition:</label>
+            <select
+              id="selectCondition"
+              class="condition-dropdown"
+              title="Select Cardiac Pathology Sound Set"
+            ></select>
+          </div>
+
+          <div class="control-divider"></div>
+
+          <div class="slider-control" title="Heart Rate (BPM)">
+            <label for="sliderBpm" class="ctrl-label">BPM:</label>
+            <input
+              type="range"
+              id="sliderBpm"
+              min="40"
+              max="160"
+              value="72"
+              step="1"
+              class="range-slider"
+            />
+            <span id="labelBpm" class="ctrl-val">72</span>
+          </div>
+
+          <div class="control-divider"></div>
+
+          <div class="slider-control" title="Stethoscope Volume">
+            <label for="sliderVolume" class="ctrl-label">Vol:</label>
+            <input
+              type="range"
+              id="sliderVolume"
+              min="0"
+              max="100"
+              value="80"
+              step="1"
+              class="range-slider"
+            />
+            <span id="labelVolume" class="ctrl-val">80%</span>
+          </div>
+        </div>
+
         <a href="../" class="back-link" title="Return to Trainer">← Back to Trainer</a>
       </header>
 
@@ -77,59 +134,106 @@
       </main>
 
       <!-- Clinical Information Card -->
-      <aside class="info-card" id="infoCard" aria-live="polite">
-        <div class="info-card-header">
-          <span class="info-card-title" id="infoTitle">Aortic Area</span>
-          <span class="info-tag" id="infoTag" style="background-color: #ef4444">Aortic</span>
-        </div>
-        <div class="info-field">
-          <div class="info-field-label">Anatomical Landmark</div>
-          <div class="info-field-value" id="infoLandmark">
-            2nd Intercostal Space, Right Sternal Border
+      <aside class="info-card collapsed" id="infoCard" aria-live="polite">
+        <div class="info-card-header" id="infoHeader">
+          <div class="info-card-title-wrap">
+            <span class="info-card-title" id="infoTitle">Aortic Area</span>
+            <span class="info-tag" id="infoTag" style="background-color: #ef4444">Aortic</span>
+          </div>
+          <div class="info-card-actions">
+            <button
+              class="info-card-toggle"
+              id="btnToggleInfoCard"
+              title="Minimize/Expand Info"
+              aria-label="Toggle Clinical Details"
+            >
+              ▾
+            </button>
+            <button
+              class="info-card-close"
+              id="btnCloseInfoCard"
+              title="Close Info Card"
+              aria-label="Close Clinical Details"
+            >
+              ✕
+            </button>
           </div>
         </div>
-        <div class="info-field">
-          <div class="info-field-label">Auscultatory Acoustics</div>
-          <div class="info-field-value" id="infoSound">S2 louder than S1 (A2 aortic closure)</div>
-        </div>
-        <div class="info-field">
-          <div class="info-field-label">Clinical Highlights</div>
-          <div class="info-field-value" id="infoSignificance">
-            Best site to detect Aortic Stenosis and Aortic Regurgitation.
+        <div class="info-card-body" id="infoCardBody">
+          <div class="info-field">
+            <div class="info-field-label">Anatomical Landmark</div>
+            <div class="info-field-value" id="infoLandmark">
+              2nd Intercostal Space, Right Sternal Border
+            </div>
           </div>
-        </div>
-        <div class="info-field">
-          <div class="info-field-label">Primary Pathology</div>
-          <div class="info-field-value" id="infoCondition">
-            Systolic ejection murmur of Aortic Stenosis radiating to carotids.
+          <div class="info-field">
+            <div class="info-field-label">Auscultatory Acoustics</div>
+            <div class="info-field-value" id="infoSound">S2 louder than S1 (A2 aortic closure)</div>
+          </div>
+          <div class="info-field">
+            <div class="info-field-label">Clinical Highlights</div>
+            <div class="info-field-value" id="infoSignificance">
+              Best site to detect Aortic Stenosis and Aortic Regurgitation.
+            </div>
+          </div>
+          <div class="info-field">
+            <div class="info-field-label">Primary Pathology</div>
+            <div class="info-field-value" id="infoCondition">
+              Systolic ejection murmur of Aortic Stenosis radiating to carotids.
+            </div>
           </div>
         </div>
       </aside>
 
-      <!-- Pin Drop Coordinates HUD -->
-      <div class="pin-drop-hud" id="pinDropHud" style="display: none" aria-live="polite">
-        <div class="pin-hud-header">
+      <!-- Stethoscope & Coordinates HUD -->
+      <div class="pin-drop-hud collapsed" id="pinDropHud" style="display: none" aria-live="polite">
+        <div class="pin-hud-header" id="pinHudHeader">
           <div class="pin-hud-title-wrap">
             <span class="pin-dot-indicator"></span>
-            <span class="pin-hud-title">Pinned Coordinates</span>
+            <span class="pin-hud-title" id="pinHudTitle">Stethoscope</span>
+            <span class="pin-hud-badge" id="pinHudProximityBadge"></span>
           </div>
-          <button
-            class="pin-hud-clear"
-            id="btnPinClear"
-            title="Clear Pin"
-            aria-label="Clear dropped pin"
-          >
-            ✕
-          </button>
+          <div class="pin-hud-actions">
+            <button
+              class="pin-hud-toggle"
+              id="btnTogglePinHud"
+              title="Minimize/Expand HUD"
+              aria-label="Toggle Auscultation Details"
+            >
+              ▾
+            </button>
+            <button
+              class="pin-hud-clear"
+              id="btnPinClear"
+              title="Clear Pin (C)"
+              aria-label="Clear dropped pin"
+            >
+              ✕
+            </button>
+          </div>
         </div>
         <div class="pin-hud-body">
-          <div class="pin-hud-row">
-            <span class="pin-hud-label">Model [x, y, z]:</span>
-            <code class="pin-hud-coords" id="pinModelCoords">[0.000, 0.000, 0.000]</code>
+          <div class="pin-hud-grid">
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Proximity</span>
+              <span class="pin-hud-val" id="pinProximity">Aortic: 100%</span>
+            </div>
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Spatial Level</span>
+              <span class="pin-hud-val" id="pinSpatialGain">100%</span>
+            </div>
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Tissue Filter</span>
+              <span class="pin-hud-val" id="pinTissueFilter">3,800 Hz</span>
+            </div>
+            <div class="pin-hud-row">
+              <span class="pin-hud-label">Surface Normal</span>
+              <code class="pin-hud-coords-dim" id="pinNormalCoords">[0, 0, 1]</code>
+            </div>
           </div>
-          <div class="pin-hud-row">
-            <span class="pin-hud-label">Surface Normal:</span>
-            <code class="pin-hud-coords-dim" id="pinNormalCoords">[0.000, 0.000, 1.000]</code>
+          <div class="pin-hud-row pin-hud-full">
+            <span class="pin-hud-label">Model [x, y, z]</span>
+            <code class="pin-hud-coords" id="pinModelCoords">[0.000, 0.000, 0.000]</code>
           </div>
           <button class="pin-hud-copy" id="btnPinCopy">Copy Model Coordinates</button>
         </div>
@@ -164,6 +268,22 @@
             aria-label="Toggle Pin Drop"
           >
             📍
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleStethoscope"
+            title="Toggle Stethoscope Mode: Drag across chest to listen live (L)"
+            aria-label="Toggle Stethoscope Drag Mode"
+          >
+            🩺
+          </button>
+          <button
+            class="icon-btn"
+            id="btnToggleInfoDock"
+            title="Toggle Clinical Information (I)"
+            aria-label="Toggle Clinical Information"
+          >
+            ℹ️
           </button>
           <button
             class="icon-btn"
