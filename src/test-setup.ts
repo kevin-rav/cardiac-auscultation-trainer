@@ -1,12 +1,39 @@
 if (typeof window !== 'undefined') {
-  // In Node 24+, globalThis.localStorage defaults to an unbacked experimental object.
-  // Replace it with jsdom's window.localStorage so tests have full Web Storage API support.
-  try {
-    const jsdomStorage = window.localStorage;
-    delete (globalThis as Record<string, unknown>)['localStorage'];
-    (globalThis as Record<string, unknown>)['localStorage'] = jsdomStorage;
-  } catch {
-    // Fall back to existing localStorage if deletion is not allowed
+  // In Node 24+/25+, globalThis.localStorage defaults to an unbacked experimental object
+  // without Storage methods (clear, getItem, setItem). Provide a conformant in-memory storage.
+  if (!window.localStorage || typeof window.localStorage.clear !== 'function') {
+    class MemoryStorage implements Storage {
+      private readonly store = new Map<string, string>();
+      get length(): number {
+        return this.store.size;
+      }
+      clear(): void {
+        this.store.clear();
+      }
+      getItem(key: string): string | null {
+        return this.store.get(key) ?? null;
+      }
+      key(index: number): string | null {
+        return Array.from(this.store.keys())[index] ?? null;
+      }
+      removeItem(key: string): void {
+        this.store.delete(key);
+      }
+      setItem(key: string, value: string): void {
+        this.store.set(key, String(value));
+      }
+    }
+    const storage = new MemoryStorage();
+    Object.defineProperty(window, 'localStorage', {
+      value: storage,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: storage,
+      writable: true,
+      configurable: true,
+    });
   }
 
   class MockResizeObserver implements ResizeObserver {
