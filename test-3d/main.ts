@@ -262,6 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
     infoCard?.classList.toggle('collapsed');
   });
 
+  const btnTogglePinHud = document.getElementById('btnTogglePinHud');
+  btnTogglePinHud?.addEventListener('click', () => {
+    pinDropHud?.classList.toggle('collapsed');
+  });
+
   btnTogglePinDrop?.addEventListener('click', () => {
     const isEnabled = viewer.togglePinDrop();
     btnTogglePinDrop.classList.toggle('active', isEnabled);

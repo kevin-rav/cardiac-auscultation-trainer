@@ -111,6 +111,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--glass-shadow);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .badge-tag {
@@ -122,12 +124,15 @@ body {
   border-radius: 4px;
   background: #2563eb;
   color: white;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .title-text {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 /* Audio Auscultation Control Bar */
@@ -533,6 +538,28 @@ body {
   letter-spacing: -0.01em;
 }
 
+.pin-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pin-hud-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.pin-hud-toggle:hover {
+  color: var(--text-main);
+  background: var(--button-hover);
+}
+
 .pin-hud-clear {
   background: transparent;
   border: none;
@@ -547,6 +574,20 @@ body {
 .pin-hud-clear:hover {
   color: var(--text-main);
   background: var(--button-hover);
+}
+
+.pin-drop-hud.collapsed .pin-hud-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.pin-drop-hud.collapsed .pin-hud-body {
+  display: none;
+}
+
+.pin-drop-hud.collapsed .pin-hud-toggle {
+  transform: rotate(-90deg);
 }
 
 .pin-hud-body {
@@ -756,7 +797,13 @@ body {
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
+  .header-badge .title-text {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
   .top-header {
     flex-wrap: wrap;
     gap: 8px;
@@ -771,6 +818,28 @@ body {
     padding: 6px 10px;
     -webkit-overflow-scrolling: touch;
   }
+
+  .pin-drop-hud {
+    top: 116px;
+  }
+
+  .info-card {
+    top: auto;
+    bottom: 76px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    z-index: 45;
+  }
+
+  .info-card-toggle {
+    display: block;
+  }
 }
 
 @media (max-width: 768px) {
@@ -783,10 +852,6 @@ body {
 
   .header-badge {
     padding: 6px 12px;
-  }
-
-  .header-badge .title-text {
-    display: none;
   }
 
   .back-link {
@@ -813,33 +878,12 @@ body {
   }
 
   .info-card {
-    top: auto;
-    bottom: 76px;
     right: 8px;
     left: 8px;
-    width: auto;
-    max-width: none;
-    max-height: 40vh;
-    overflow-y: auto;
-    padding: 12px 14px;
-    border-radius: var(--radius-md);
-    z-index: 45;
-  }
-
-  .info-card-toggle {
-    display: block;
-  }
-
-  .info-field {
-    margin-bottom: 6px;
-  }
-
-  .info-field-value {
-    font-size: 12px;
   }
 
   .pin-drop-hud {
-    top: 105px;
+    top: 100px;
     left: 8px;
     right: 8px;
     width: auto;

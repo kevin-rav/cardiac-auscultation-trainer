@@ -182,14 +182,24 @@
             <span class="pin-dot-indicator"></span>
             <span class="pin-hud-title" id="pinHudTitle">Stethoscope Auscultation</span>
           </div>
-          <button
-            class="pin-hud-clear"
-            id="btnPinClear"
-            title="Clear Pin (C)"
-            aria-label="Clear dropped pin"
-          >
-            ✕
-          </button>
+          <div class="pin-hud-actions">
+            <button
+              class="pin-hud-toggle"
+              id="btnTogglePinHud"
+              title="Minimize/Expand HUD"
+              aria-label="Toggle Auscultation Details"
+            >
+              ▾
+            </button>
+            <button
+              class="pin-hud-clear"
+              id="btnPinClear"
+              title="Clear Pin (C)"
+              aria-label="Clear dropped pin"
+            >
+              ✕
+            </button>
+          </div>
         </div>
         <div class="pin-hud-body">
           <div class="pin-hud-row">
