@@ -1,7 +1,9 @@
+import { Download } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { downloadTextFile } from '../../lib/downloadFile';
 import type { Quiz } from '../../store';
 
 interface QuizCardProps {
@@ -31,6 +33,16 @@ export function QuizCard({ quiz, onStart, actions }: QuizCardProps) {
           aria-label={`Start quiz: ${quiz.label}`}
         >
           Start quiz
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            downloadTextFile(`${quiz.id}.json`, `${JSON.stringify(quiz, null, 2)}\n`);
+          }}
+          aria-label={`Download quiz: ${quiz.label}`}
+        >
+          <Download aria-hidden="true" />
+          Download
         </Button>
         {actions}
       </CardContent>
