@@ -1,7 +1,7 @@
 if (typeof window !== 'undefined') {
   // In Node 24+/25+, globalThis.localStorage defaults to an unbacked experimental object
   // without Storage methods (clear, getItem, setItem). Provide a conformant in-memory storage.
-  if (!window.localStorage || typeof window.localStorage.clear !== 'function') {
+  if (typeof window.localStorage.clear !== 'function') {
     class MemoryStorage implements Storage {
       private readonly store = new Map<string, string>();
       get length(): number {
@@ -20,7 +20,7 @@ if (typeof window !== 'undefined') {
         this.store.delete(key);
       }
       setItem(key: string, value: string): void {
-        this.store.set(key, String(value));
+        this.store.set(key, value);
       }
     }
     const storage = new MemoryStorage();
