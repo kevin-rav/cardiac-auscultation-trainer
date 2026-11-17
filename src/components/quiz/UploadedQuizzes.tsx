@@ -4,20 +4,24 @@ import {
   MAX_QUIZ_FILE_BYTES,
   parseQuizFile,
   useUploadedQuizStore,
+  type Quiz,
   type QuizIssue,
 } from '../../store';
+import { formatIssue } from './formatIssue';
 import { QuizCard } from './QuizCard';
 
 type UploadStatus =
   | { kind: 'success'; message: string; warnings: QuizIssue[] }
   | { kind: 'error'; errors: QuizIssue[] };
 
-function formatIssue(issue: QuizIssue): string {
-  return issue.path === '' ? issue.message : `${issue.path}: ${issue.message}`;
+interface UploadedQuizzesProps {
+  onStart: (id: string) => void;
+  /** Opens a quiz in the builder. Without it, cards have no Edit button. */
+  onEdit?: ((quiz: Quiz) => void) | undefined;
 }
 
 /** Upload quiz JSON files and list the quizzes saved in this browser. */
-export function UploadedQuizzes({ onStart }: { onStart: (id: string) => void }) {
+export function UploadedQuizzes({ onStart, onEdit }: UploadedQuizzesProps) {
   const quizzes = useUploadedQuizStore((s) => s.quizzes);
   const addQuiz = useUploadedQuizStore((s) => s.addQuiz);
   const removeQuiz = useUploadedQuizStore((s) => s.removeQuiz);
@@ -104,6 +108,7 @@ export function UploadedQuizzes({ onStart }: { onStart: (id: string) => void }) 
               <QuizCard
                 quiz={q}
                 onStart={onStart}
+                onEdit={onEdit}
                 actions={
                   <Button
                     variant="outline"

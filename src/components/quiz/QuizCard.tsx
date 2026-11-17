@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react';
+import { Download, Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,13 @@ import type { Quiz } from '../../store';
 interface QuizCardProps {
   quiz: Quiz;
   onStart: (id: string) => void;
+  /** Opens the quiz in the builder. Without it, there is no Edit button. */
+  onEdit?: ((quiz: Quiz) => void) | undefined;
   /** Extra buttons shown next to Start, such as Remove for uploaded quizzes. */
   actions?: ReactNode;
 }
 
-export function QuizCard({ quiz, onStart, actions }: QuizCardProps) {
+export function QuizCard({ quiz, onStart, onEdit, actions }: QuizCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -25,7 +27,7 @@ export function QuizCard({ quiz, onStart, actions }: QuizCardProps) {
         </div>
         {quiz.description !== undefined && <CardDescription>{quiz.description}</CardDescription>}
       </CardHeader>
-      <CardContent className="flex gap-2">
+      <CardContent className="flex flex-wrap gap-2">
         <Button
           onClick={() => {
             onStart(quiz.id);
@@ -44,6 +46,18 @@ export function QuizCard({ quiz, onStart, actions }: QuizCardProps) {
           <Download aria-hidden="true" />
           Download
         </Button>
+        {onEdit !== undefined && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              onEdit(quiz);
+            }}
+            aria-label={`Edit quiz: ${quiz.label}`}
+          >
+            <Pencil aria-hidden="true" />
+            Edit
+          </Button>
+        )}
         {actions}
       </CardContent>
     </Card>
