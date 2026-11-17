@@ -6,6 +6,7 @@ import {
   MAX_QUIZ_FILE_BYTES,
   QUIZ_HISTORY_STORAGE_KEY,
   setQuizPlayerInstance,
+  useQuizBuilderStore,
   useQuizHistoryStore,
   useQuizStore,
   useUploadedQuizStore,
@@ -410,6 +411,65 @@ describe('QuizPage', () => {
 
       expect(screen.getByText('Your answer: S4 gallop')).toBeDefined();
       expect(screen.getByText('Correct answer: S3 gallop')).toBeDefined();
+    });
+  });
+
+  describe('editing quizzes', () => {
+    const uploaded: Quiz = {
+      id: 'my-upload',
+      label: 'My Upload',
+      questions: [
+        {
+          id: 'q1',
+          type: 'yes-no',
+          prompt: 'Is this S3?',
+          sound: { soundSet: 's3-gallop', bpm: 72 },
+          answer: true,
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      useQuizBuilderStore.getState().reset();
+    });
+
+    it('has no Edit buttons unless the page can navigate', () => {
+      render(<QuizPage />);
+      expect(screen.queryByRole('button', { name: /^Edit quiz/ })).toBeNull();
+    });
+
+    it('opens a built-in quiz in an empty builder as a copy', () => {
+      const onNavigate = vi.fn();
+      render(<QuizPage onNavigate={onNavigate} />);
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit quiz: ${quizLabel}` }));
+
+      expect(onNavigate).toHaveBeenCalledWith('/builder');
+      const { draft } = useQuizBuilderStore.getState();
+      expect(draft.label).toBe(`${quizLabel} (copy)`);
+      expect(draft.questions).toHaveLength(questionCount);
+    });
+
+    it('opens an uploaded quiz with its own title', () => {
+      useUploadedQuizStore.setState({ quizzes: [uploaded] });
+      const onNavigate = vi.fn();
+      render(<QuizPage onNavigate={onNavigate} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit quiz: My Upload' }));
+
+      expect(onNavigate).toHaveBeenCalledWith('/builder');
+      expect(useQuizBuilderStore.getState().draft.label).toBe('My Upload');
+    });
+
+    it('leaves a draft with work in it for the builder to confirm', () => {
+      useQuizBuilderStore.getState().setLabel('Work in progress');
+      const onNavigate = vi.fn();
+      render(<QuizPage onNavigate={onNavigate} />);
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit quiz: ${quizLabel}` }));
+
+      expect(onNavigate).toHaveBeenCalledWith(`/builder?edit=${quiz.id}`);
+      expect(useQuizBuilderStore.getState().draft.label).toBe('Work in progress');
     });
   });
 });

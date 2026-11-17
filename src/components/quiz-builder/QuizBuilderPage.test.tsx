@@ -1,7 +1,14 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadTextFile } from '../../lib/downloadFile';
-import { parseQuizFile, useQuizBuilderStore, type QuizDraft } from '../../store';
+import { PRESET_QUIZZES } from '../../data';
+import {
+  parseQuizFile,
+  useQuizBuilderStore,
+  useUploadedQuizStore,
+  type Quiz,
+  type QuizDraft,
+} from '../../store';
 import { QuizBuilderPage } from './QuizBuilderPage';
 
 vi.mock('../../lib/downloadFile', () => ({ downloadTextFile: vi.fn() }));
@@ -111,6 +118,7 @@ describe('QuizBuilderPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /add yes\/no question/i }));
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(2);
+    expect(useQuizBuilderStore.getState().draft.questions[1]?.type).toBe('yes-no');
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove question 2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remove question 1' }));
@@ -299,6 +307,123 @@ describe('QuizBuilderPage', () => {
       const [yesNo, choice] = uploaded.quiz.questions;
       expect(yesNo?.type).toBe('yes-no');
       expect(choice?.type === 'multiple-choice' && choice.answer).toBe('s3-gallop');
+    });
+  });
+
+  describe('opening an existing quiz', () => {
+    const saved: Quiz = {
+      id: 'my-quiz',
+      label: 'My Quiz',
+      questions: [
+        {
+          id: 'q1',
+          type: 'yes-no',
+          prompt: 'Is this S3?',
+          sound: { soundSet: 's3-gallop', bpm: 80 },
+          answer: false,
+        },
+        {
+          id: 'q2',
+          type: 'multiple-choice',
+          prompt: 'Which sound is this?',
+          sound: { soundSet: 's4-gallop', bpm: 72 },
+          choices: [
+            { id: 's3', label: 'S3 gallop' },
+            { id: 's4', label: 'S4 gallop' },
+          ],
+          answer: 's4',
+        },
+      ],
+    };
+
+    function openFile(content: string): void {
+      const file = new File([content], 'quiz.json', { type: 'application/json' });
+      fireEvent.change(screen.getByLabelText('Quiz file to open'), { target: { files: [file] } });
+    }
+
+    afterEach(() => {
+      window.history.replaceState(null, '', '/');
+      useUploadedQuizStore.setState({ quizzes: [] });
+    });
+
+    it('opens a quiz file into an empty draft', async () => {
+      render(<QuizBuilderPage />);
+      openFile(JSON.stringify(saved));
+
+      expect(await screen.findByText(/Download it again when you are done/)).toBeDefined();
+      expect(screen.getByLabelText('Quiz title')).toHaveProperty('value', 'My Quiz');
+      expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(2);
+      expect(screen.getByLabelText('Choice 2')).toHaveProperty('value', 'S4 gallop');
+      expect(screen.getByLabelText('Choice 2 is correct')).toHaveProperty('checked', true);
+    });
+
+    it('lists the problems and changes nothing for an invalid file', async () => {
+      setDraft(validDraft('Keep me'));
+      render(<QuizBuilderPage />);
+      openFile(JSON.stringify({ ...saved, questions: [] }));
+
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toContain('Could not open this quiz');
+      expect(alert.textContent).toContain('questions');
+      expect(useQuizBuilderStore.getState().draft.label).toBe('Keep me');
+    });
+
+    it('says so when the file is not JSON', async () => {
+      render(<QuizBuilderPage />);
+      openFile('not json');
+      expect((await screen.findByRole('alert')).textContent).toContain('not valid JSON');
+    });
+
+    it('asks before replacing a draft with work in it', async () => {
+      setDraft(validDraft('Keep me'));
+      render(<QuizBuilderPage />);
+
+      openFile(JSON.stringify(saved));
+      expect(await screen.findByText(/Replace your current draft with/)).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: 'Keep my draft' }));
+      expect(screen.getByLabelText('Quiz title')).toHaveProperty('value', 'Keep me');
+
+      openFile(JSON.stringify(saved));
+      fireEvent.click(await screen.findByRole('button', { name: 'Replace draft' }));
+      expect(screen.getByLabelText('Quiz title')).toHaveProperty('value', 'My Quiz');
+    });
+
+    it('opens a quiz sent from the Edit button once the author agrees', () => {
+      const builtIn = PRESET_QUIZZES[0];
+      if (builtIn === undefined) throw new Error('Expected a preset quiz');
+      setDraft(validDraft('Keep me'));
+      window.history.replaceState(null, '', `/builder?edit=${builtIn.id}`);
+      render(<QuizBuilderPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Replace draft' }));
+
+      expect(screen.getByLabelText('Quiz title')).toHaveProperty(
+        'value',
+        `${builtIn.label} (copy)`,
+      );
+      expect(window.location.search).toBe('');
+      expect(screen.getByRole('button', { name: /download quiz/i })).toHaveProperty(
+        'disabled',
+        false,
+      );
+    });
+
+    it('opens, changes and downloads a quiz that still passes the upload checks', async () => {
+      render(<QuizBuilderPage />);
+      openFile(JSON.stringify(saved));
+      await screen.findByText(/Download it again when you are done/);
+
+      const [firstPrompt] = screen.getAllByLabelText('Prompt');
+      if (firstPrompt === undefined) throw new Error('Expected a prompt');
+      fireEvent.change(firstPrompt, { target: { value: 'Is this an S3 gallop?' } });
+      fireEvent.click(screen.getByRole('button', { name: /download quiz/i }));
+
+      const text = vi.mocked(downloadTextFile).mock.calls[0]?.[1] ?? '';
+      const reopened = parseQuizFile(text);
+      if (!reopened.success) throw new Error(reopened.errors.map((e) => e.message).join('; '));
+      expect(reopened.quiz.id).toBe('my-quiz');
+      expect(reopened.quiz.questions[0]?.prompt).toBe('Is this an S3 gallop?');
+      expect(reopened.quiz.questions[1]?.type).toBe('multiple-choice');
     });
   });
 

@@ -56,7 +56,7 @@ export function App() {
       {isTunerRoute ? (
         <AudioTuner />
       ) : isQuizRoute ? (
-        <QuizPage />
+        <QuizPage onNavigate={handleNavigate} />
       ) : isBuilderRoute ? (
         <QuizBuilderPage />
       ) : (

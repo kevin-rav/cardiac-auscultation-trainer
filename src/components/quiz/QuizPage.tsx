@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { PRESET_QUIZZES } from '../../data';
-import { useQuizHistoryStore, useQuizStore, type QuizAnswer, type QuizAttempt } from '../../store';
+import {
+  useQuizBuilderStore,
+  useQuizHistoryStore,
+  useQuizStore,
+  type Quiz,
+  type QuizAnswer,
+  type QuizAttempt,
+} from '../../store';
+import { EDIT_PARAM, isDraftEmpty, openInBuilder } from '../quiz-builder/openInBuilder';
 import { QuizAttemptReview } from './QuizAttemptReview';
 import { QuizCard } from './QuizCard';
 import { QuizHistory } from './QuizHistory';
@@ -13,7 +21,12 @@ import { UploadedQuizzes } from './UploadedQuizzes';
  * All quiz logic and audio playback live in `useQuizStore`; finished attempts are
  * saved on this device by `useQuizHistoryStore`.
  */
-export function QuizPage() {
+interface QuizPageProps {
+  /** Goes to another page of the app. Without it, quizzes have no Edit button. */
+  onNavigate?: (path: string) => void;
+}
+
+export function QuizPage({ onNavigate }: QuizPageProps = {}) {
   const quiz = useQuizStore((s) => s.quiz);
   const isFinished = useQuizStore((s) => s.isFinished);
   const startQuiz = useQuizStore((s) => s.startQuiz);
@@ -37,6 +50,20 @@ export function QuizPage() {
     setAnswers({});
     startQuiz(id);
   };
+
+  // Edit opens the quiz in the builder. If the builder already holds work, the
+  // builder asks before replacing it, so the quiz is passed along in the URL.
+  const handleEdit =
+    onNavigate === undefined
+      ? undefined
+      : (editing: Quiz) => {
+          if (isDraftEmpty(useQuizBuilderStore.getState().draft)) {
+            openInBuilder(editing);
+            onNavigate('/builder');
+          } else {
+            onNavigate(`/builder?${EDIT_PARAM}=${encodeURIComponent(editing.id)}`);
+          }
+        };
 
   const recordAnswer = (questionId: string, selected: QuizAnswer) => {
     setAnswers((prev) => ({ ...prev, [questionId]: selected }));
@@ -93,12 +120,12 @@ export function QuizPage() {
           <ul className="flex flex-col gap-4">
             {PRESET_QUIZZES.map((q) => (
               <li key={q.id}>
-                <QuizCard quiz={q} onStart={handleStart} />
+                <QuizCard quiz={q} onStart={handleStart} onEdit={handleEdit} />
               </li>
             ))}
           </ul>
 
-          <UploadedQuizzes onStart={handleStart} />
+          <UploadedQuizzes onStart={handleStart} onEdit={handleEdit} />
 
           <QuizHistory onSelect={setReviewing} />
         </>
