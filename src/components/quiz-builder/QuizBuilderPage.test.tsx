@@ -1,7 +1,7 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadTextFile } from '../../lib/downloadFile';
-import { useQuizBuilderStore, type QuizDraft } from '../../store';
+import { parseQuizFile, useQuizBuilderStore, type QuizDraft } from '../../store';
 import { QuizBuilderPage } from './QuizBuilderPage';
 
 vi.mock('../../lib/downloadFile', () => ({ downloadTextFile: vi.fn() }));
@@ -138,29 +138,168 @@ describe('QuizBuilderPage', () => {
     expect(prompts).toEqual(['Second', 'First']);
   });
 
-  it('says that multiple-choice answers cannot be edited yet', () => {
-    setDraft({
-      label: 'Choices',
-      description: '',
-      questions: [
-        {
-          key: 'm1',
-          type: 'multiple-choice',
-          prompt: 'Which sound is this?',
-          soundSet: 'normal-s1-s2',
-          bpm: 72,
-          explanation: '',
-          choices: [
-            { key: 'c1', label: 'Normal' },
-            { key: 'c2', label: 'Murmur' },
-          ],
-          answerKey: 'c1',
-        },
-      ],
-    });
-    render(<QuizBuilderPage />);
+  describe('multiple-choice questions', () => {
+    /** The card for question `n`, so its fields can be found by their plain labels. */
+    const card = (n: number) => {
+      const item = screen
+        .getAllByRole('listitem')
+        .find((li) =>
+          within(li).queryByRole('heading', { level: 3, name: `Question ${String(n)}` }),
+        );
+      if (item === undefined) throw new Error(`No card for question ${String(n)}`);
+      return within(item);
+    };
 
-    expect(screen.getByText(/can't be edited in the builder yet/i)).toBeDefined();
+    const choiceQuestion = () => {
+      const q = useQuizBuilderStore.getState().draft.questions[0];
+      if (q?.type !== 'multiple-choice') throw new Error('Expected a multiple-choice question');
+      return q;
+    };
+
+    function setChoiceDraft(labels: string[]): void {
+      setDraft({
+        label: 'Choices',
+        description: '',
+        questions: [
+          {
+            key: 'm1',
+            type: 'multiple-choice',
+            prompt: 'Which sound is this?',
+            soundSet: 'normal-s1-s2',
+            bpm: 72,
+            explanation: '',
+            choices: labels.map((label, i) => ({ key: `c${String(i + 1)}`, label })),
+            answerKey: 'c1',
+          },
+        ],
+      });
+    }
+
+    it('adds a multiple-choice question with two empty choices', () => {
+      render(<QuizBuilderPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: /add multiple-choice question/i }));
+
+      const q2 = card(2);
+      expect(q2.getByLabelText('Question type')).toHaveProperty('value', 'multiple-choice');
+      expect(q2.getByLabelText('Choice 1')).toHaveProperty('value', '');
+      expect(q2.getByLabelText('Choice 2')).toHaveProperty('value', '');
+      expect(q2.getByLabelText('Choice 1 is correct')).toHaveProperty('checked', true);
+      expect(screen.getByText('Question 2: choice 1 needs a label')).toBeDefined();
+      expect(screen.getByText('Question 2: choice 2 needs a label')).toBeDefined();
+    });
+
+    it('edits a choice label and picks the correct choice', () => {
+      setChoiceDraft(['Normal', 'Murmur']);
+      render(<QuizBuilderPage />);
+
+      fireEvent.change(screen.getByLabelText('Choice 2'), { target: { value: 'S3 gallop' } });
+      fireEvent.click(screen.getByLabelText('Choice 2 is correct'));
+
+      const q = choiceQuestion();
+      expect(q.choices.map((c) => c.label)).toEqual(['Normal', 'S3 gallop']);
+      expect(q.answerKey).toBe('c2');
+      expect(screen.getByLabelText('Choice 1 is correct')).toHaveProperty('checked', false);
+    });
+
+    it('adds choices up to 6 and removes them down to 2', () => {
+      setChoiceDraft(['A', 'B']);
+      render(<QuizBuilderPage />);
+
+      const add = screen.getByRole('button', { name: 'Add choice' });
+      expect(screen.getByRole('button', { name: 'Remove choice 1' })).toHaveProperty(
+        'disabled',
+        true,
+      );
+
+      for (let i = 0; i < 4; i++) fireEvent.click(add);
+      expect(choiceQuestion().choices).toHaveLength(6);
+      expect(add).toHaveProperty('disabled', true);
+      expect(screen.getByText('Up to 6 choices.')).toBeDefined();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove choice 1' }));
+      expect(choiceQuestion().choices).toHaveLength(5);
+      expect(add).toHaveProperty('disabled', false);
+    });
+
+    it('moves the correct answer to the first choice left when it is removed', () => {
+      setChoiceDraft(['A', 'B', 'C']);
+      render(<QuizBuilderPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove choice 1' }));
+
+      expect(choiceQuestion().choices.map((c) => c.label)).toEqual(['B', 'C']);
+      expect(screen.getByLabelText('Choice 1 is correct')).toHaveProperty('checked', true);
+    });
+
+    it('keeps the prompt, sound and explanation when the type is switched', () => {
+      render(<QuizBuilderPage />);
+      fireEvent.change(screen.getByLabelText('Prompt'), { target: { value: 'Which sound?' } });
+      fireEvent.change(screen.getByLabelText('Sound'), { target: { value: 's3-gallop' } });
+      fireEvent.change(screen.getByLabelText('Explanation (optional)'), {
+        target: { value: 'Early diastole.' },
+      });
+
+      fireEvent.change(screen.getByLabelText('Question type'), {
+        target: { value: 'multiple-choice' },
+      });
+      expect(screen.getByLabelText('Choice 1')).toBeDefined();
+
+      fireEvent.change(screen.getByLabelText('Question type'), { target: { value: 'yes-no' } });
+      expect(screen.queryByLabelText('Choice 1')).toBeNull();
+      expect(screen.getByLabelText('Yes')).toBeDefined();
+
+      const [q] = useQuizBuilderStore.getState().draft.questions;
+      expect(q?.prompt).toBe('Which sound?');
+      expect(q?.soundSet).toBe('s3-gallop');
+      expect(q?.explanation).toBe('Early diastole.');
+      expect(screen.getByLabelText('Prompt')).toHaveProperty('value', 'Which sound?');
+    });
+
+    it('blocks download while two choices have the same label', () => {
+      setChoiceDraft(['Murmur', ' murmur ']);
+      render(<QuizBuilderPage />);
+
+      expect(screen.getByText('Question 1: choice 2 is the same as another choice')).toBeDefined();
+      const download = screen.getByRole('button', { name: /download quiz/i });
+      expect(download).toHaveProperty('disabled', true);
+
+      fireEvent.change(screen.getByLabelText('Choice 2'), { target: { value: 'Normal' } });
+      expect(download).toHaveProperty('disabled', false);
+    });
+
+    it('blocks download while a choice is only spaces', () => {
+      setChoiceDraft(['Normal', '   ']);
+      render(<QuizBuilderPage />);
+
+      expect(screen.getByText('Question 1: choice 2 needs a label')).toBeDefined();
+      expect(screen.getByRole('button', { name: /download quiz/i })).toHaveProperty(
+        'disabled',
+        true,
+      );
+    });
+
+    it('downloads a mixed quiz that passes the upload checks', () => {
+      setDraft(validDraft('Mixed'));
+      render(<QuizBuilderPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: /add multiple-choice question/i }));
+      const q2 = card(2);
+      fireEvent.change(q2.getByLabelText('Prompt'), { target: { value: 'Which sound is this?' } });
+      fireEvent.change(q2.getByLabelText('Sound'), { target: { value: 's3-gallop' } });
+      fireEvent.change(q2.getByLabelText('Choice 1'), { target: { value: 'S4 gallop' } });
+      fireEvent.change(q2.getByLabelText('Choice 2'), { target: { value: 'S3 gallop' } });
+      fireEvent.click(q2.getByLabelText('Choice 2 is correct'));
+
+      fireEvent.click(screen.getByRole('button', { name: /download quiz/i }));
+
+      const text = vi.mocked(downloadTextFile).mock.calls[0]?.[1] ?? '';
+      const uploaded = parseQuizFile(text);
+      if (!uploaded.success) throw new Error(uploaded.errors.map((e) => e.message).join('; '));
+      const [yesNo, choice] = uploaded.quiz.questions;
+      expect(yesNo?.type).toBe('yes-no');
+      expect(choice?.type === 'multiple-choice' && choice.answer).toBe('s3-gallop');
+    });
   });
 
   it('asks before erasing the draft', () => {

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PRESET_SOUND_SETS } from '../../data';
 import { useQuizBuilderStore, type DraftQuestion } from '../../store';
+import { ChoiceEditor } from './ChoiceEditor';
 import { fieldClass, labelClass } from './fieldStyles';
 
 interface QuestionEditorProps {
@@ -13,14 +14,16 @@ interface QuestionEditorProps {
   total: number;
 }
 
-/** The form for one question: prompt, sound, heart rate, answer and explanation. */
+/** The form for one question: type, prompt, sound, heart rate, answer and explanation. */
 export function QuestionEditor({ question: q, index, total }: QuestionEditorProps) {
   const updateQuestion = useQuizBuilderStore((s) => s.updateQuestion);
+  const setQuestionType = useQuizBuilderStore((s) => s.setQuestionType);
   const setYesNoAnswer = useQuizBuilderStore((s) => s.setYesNoAnswer);
   const moveQuestion = useQuizBuilderStore((s) => s.moveQuestion);
   const removeQuestion = useQuizBuilderStore((s) => s.removeQuestion);
 
   const number = String(index + 1);
+  const typeId = `type-${q.key}`;
   const promptId = `prompt-${q.key}`;
   const soundId = `sound-${q.key}`;
   const bpmId = `bpm-${q.key}`;
@@ -80,6 +83,24 @@ export function QuestionEditor({ question: q, index, total }: QuestionEditorProp
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
+        <div className="space-y-1">
+          <label htmlFor={typeId} className={labelClass}>
+            Question type
+          </label>
+          <select
+            id={typeId}
+            className={fieldClass}
+            value={q.type}
+            onChange={(e) => {
+              // The store keeps the prompt, sound and explanation when the type changes.
+              setQuestionType(q.key, e.target.value === 'yes-no' ? 'yes-no' : 'multiple-choice');
+            }}
+          >
+            <option value="yes-no">Yes / No</option>
+            <option value="multiple-choice">Multiple choice</option>
+          </select>
+        </div>
+
         <div className="space-y-1">
           <label htmlFor={promptId} className={labelClass}>
             Prompt
@@ -154,10 +175,7 @@ export function QuestionEditor({ question: q, index, total }: QuestionEditorProp
             </div>
           </fieldset>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Multiple-choice answers can&apos;t be edited in the builder yet. You can still change
-            the prompt, sound and explanation, or move or remove this question.
-          </p>
+          <ChoiceEditor question={q} />
         )}
 
         <div className="space-y-1">

@@ -23,7 +23,18 @@ export function describeIssue(issue: QuizIssue): string {
   }
 
   const prefix = `Question ${String(Number(index) + 1)}`;
+
+  const choice = /^choices\.(\d+)\.(label|duplicate)$/.exec(field);
+  if (choice?.[1] !== undefined) {
+    const choiceName = `choice ${String(Number(choice[1]) + 1)}`;
+    return choice[2] === 'label'
+      ? `${prefix}: ${choiceName} needs a label`
+      : `${prefix}: ${choiceName} is the same as another choice`;
+  }
+
   switch (field) {
+    case 'choices':
+      return `${prefix}: give it between 2 and 6 choices`;
     case 'prompt':
       return `${prefix}: write the question`;
     case 'sound.soundSet':

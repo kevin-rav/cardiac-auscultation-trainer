@@ -36,4 +36,19 @@ describe('describeIssue', () => {
     );
     expect(describeIssue({ path: 'description', message: 'Odd' })).toBe('Odd');
   });
+
+  it('names the choice that needs a label or repeats another', () => {
+    expect(describeIssue({ path: 'questions.0.choices.1.label', message: 'Too small' })).toBe(
+      'Question 1: choice 2 needs a label',
+    );
+    expect(describeIssue({ path: 'questions.2.choices.0.duplicate', message: 'Same' })).toBe(
+      'Question 3: choice 1 is the same as another choice',
+    );
+  });
+
+  it('explains a question with too few or too many choices', () => {
+    expect(describeIssue({ path: 'questions.0.choices', message: 'Too small' })).toBe(
+      'Question 1: give it between 2 and 6 choices',
+    );
+  });
 });
