@@ -3,6 +3,7 @@ import { Download, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadTextFile } from '../../lib/downloadFile';
 import { draftToJson, draftToQuiz, useQuizBuilderStore, validateDraft } from '../../store';
+import { findChoiceIssues } from './choiceIssues';
 import { describeIssue } from './describeIssue';
 import { fieldClass, labelClass } from './fieldStyles';
 import { QuestionEditor } from './QuestionEditor';
@@ -19,8 +20,12 @@ export function QuizBuilderPage() {
   const reset = useQuizBuilderStore((s) => s.reset);
   const [confirmingReset, setConfirmingReset] = useState(false);
 
-  // The same rules an upload of the downloaded file would face.
+  // The same rules an upload of the downloaded file would face, plus choice
+  // checks that only matter while writing (see findChoiceIssues).
   const result = validateDraft(draft);
+  const issues = [...(result.success ? [] : result.errors), ...findChoiceIssues(draft)];
+  const warnings = result.success ? result.warnings : [];
+  const ready = result.success && issues.length === 0;
 
   const handleDownload = () => {
     downloadTextFile(`${draftToQuiz(draft).id}.json`, draftToJson(draft));
@@ -75,25 +80,37 @@ export function QuizBuilderPage() {
         ))}
       </ol>
 
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          addQuestion('yes-no');
-        }}
-      >
-        <Plus aria-hidden />
-        Add yes/no question
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            addQuestion('yes-no');
+          }}
+        >
+          <Plus aria-hidden />
+          Add yes/no question
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            addQuestion('multiple-choice');
+          }}
+        >
+          <Plus aria-hidden />
+          Add multiple-choice question
+        </Button>
+      </div>
 
       <div
         role="status"
         className="space-y-2 rounded-lg border border-border bg-muted/40 p-3 text-sm"
       >
-        {result.success ? (
+        {ready ? (
           <>
             <p className="font-semibold">Ready to download</p>
-            {result.warnings.map((warning) => (
+            {warnings.map((warning) => (
               <p key={warning.message} className="text-muted-foreground">
                 Note: {warning.message}
               </p>
@@ -103,7 +120,7 @@ export function QuizBuilderPage() {
           <>
             <p className="font-semibold">Before you can download:</p>
             <ul className="list-disc pl-5">
-              {result.errors.map((issue, index) => (
+              {issues.map((issue, index) => (
                 <li key={`${String(index)}-${issue.path}`}>{describeIssue(issue)}</li>
               ))}
             </ul>
@@ -149,7 +166,7 @@ export function QuizBuilderPage() {
           </Button>
         )}
 
-        <Button type="button" disabled={!result.success} onClick={handleDownload}>
+        <Button type="button" disabled={!ready} onClick={handleDownload}>
           <Download aria-hidden />
           Download quiz
         </Button>
