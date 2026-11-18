@@ -11,14 +11,31 @@ with the same stack and a new architecture.
 
 ## Quick start
 
-Requires Node 24. If you use nvm, `nvm use` picks up the version from `.nvmrc`.
+1. **Clone the repository:**
+   ```sh
+   git clone git@github.com:kevin-rav/cardiac-auscultation-trainer.git
+   cd cardiac-auscultation-trainer
+   ```
 
-```sh
-git clone git@github.com:kevin-rav/cardiac-auscultation-trainer.git
-cd cardiac-auscultation-trainer
-npm install
-npm run dev
-```
+2. **Install dependencies:**
+
+   * **Standard (Requires Node 24):**
+     If you use `nvm`, run `nvm use` to pick up the version from `.nvmrc`, then install dependencies:
+     ```sh
+     npm install
+     ```
+
+   * **With Nix + direnv (Optional):**
+     The Nix flake automatically sets up Node and installs dependencies when you enter the directory. Create a `.envrc` file and allow it:
+     ```sh
+     echo "use flake" > .envrc
+     direnv allow
+     ```
+
+3. **Start the development server:**
+   ```sh
+   npm run dev
+   ```
 
 The dev server prints a local URL, usually `http://localhost:5173`.
 
