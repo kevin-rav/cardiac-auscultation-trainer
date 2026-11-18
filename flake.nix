@@ -11,6 +11,14 @@
         packages = with pkgs; [
           nodejs_24
         ];
+
+        shellHook = ''
+          # Automatically run 'npm install' if node_modules is missing
+          if [ ! -d "node_modules" ]; then
+            echo "node_modules not found. Running npm install..."
+            npm install
+          fi
+        '';
       };
     }) inputs.nixpkgs.legacyPackages;
   };
